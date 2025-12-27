@@ -1,0 +1,17 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+COPY package.json bun.lockb* ./
+
+RUN bun install --frozen-lockfile || bun install
+
+COPY . .
+
+ENV NODE_ENV=production
+RUN chmod +x /app/build.sh
+RUN chmod +x /app/start.sh
+RUN /app/build.sh
+
+EXPOSE 3000
+
+ENTRYPOINT ["/app/start.sh"]

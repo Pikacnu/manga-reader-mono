@@ -1,0 +1,410 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manga-reader
+---
+# NFS 統一管理配置 (Source of Truth)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manga-reader-nfs-config
+  namespace: manga-reader
+data:
+  NFS_SERVER: "nfs-server.example.com"
+  NFS_PATH_PGDATA: "/exported/path/postgres-data"
+  NFS_PATH_CACHE: "/exported/path/cache"
+---
+# NFS 伺服器代理 (透過 Service 統一管理位址)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server-service
+  namespace: manga-reader
+spec:
+  type: ExternalName
+  externalName: nfs-server.example.com
+---
+# 整合後的 Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: manga-reader-secrets
+  namespace: manga-reader
+stringData:
+  # PostgreSQL 超級使用者 (用於初始化)
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "password"
+  
+  # Web 應用程式資料庫資訊
+  WEB_DB_USER: "manga_user"
+  WEB_DB_PASSWORD: "manga_password"
+  WEB_DATABASE_URL: "postgres://manga_user:manga_password@manga-reader-postgres:5432/manga_db"
+  
+  # Image Processor 資料庫資訊
+  PROCESSOR_DB_USER: "processor_user"
+  PROCESSOR_DB_PASSWORD: "processor_password"
+  PROCESSOR_DB_URL: "postgresql://processor_user:processor_password@manga-reader-postgres:5432/image_processor"
+  
+  # Better Auth & Discord
+  BETTER_AUTH_SECRET: "BETTER_AUTH_SECRET"
+  BETTER_AUTH_URL: "BETTER_AUTH_URL"
+  DISCORD_CLIENT_ID: "DISCORD_CLIENT_ID"
+  DISCORD_CLIENT_SECRET: "DISCORD_CLIENT_SECRET"
+  
+  # S3 配置 (Image Processor 使用)
+  S3_ACCESS_KEY_ID: "any"
+  S3_SECRET_ACCESS_KEY: "any"
+---
+# Image Processor 配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-processor-config
+  namespace: manga-reader
+data:
+  PORT: "3001"
+  HOST: "0.0.0.0"
+  UPLOADS_DIR: "/uploads"
+  BACKUP_MOUNT_DIR: "/backup"
+  SHARED_SSD_CACHE_DIR: "/cache"
+  CACHE_MAX_AGE: "2592000"
+  MAX_UPLOAD_SIZE: "1073741824"
+  BACKTRACK_DURATION_IN_SECONDS: "172800"
+  RAM_CACHE_EXPIRY_DURATION: "3600"
+  MAX_RAM_CACHE_SIZE: "100"
+  MAX_SHARED_SSD_SIZE_GB: "10"
+  S3_ENDPOINT: "http://localhost:9000"
+  S3_BUCKET_NAME: "test"
+  S3_VIRTUAL_HOSTED_STYLE: "false"
+---
+# PostgreSQL 初始化腳本：建立兩個獨立的資料庫與使用者
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-script
+  namespace: manga-reader
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+        CREATE USER ${WEB_DB_USER} WITH PASSWORD '${WEB_DB_PASSWORD}';
+        CREATE DATABASE manga_db;
+        GRANT ALL PRIVILEGES ON DATABASE manga_db TO ${WEB_DB_USER};
+        
+        CREATE USER ${PROCESSOR_DB_USER} WITH PASSWORD '${PROCESSOR_DB_PASSWORD}';
+        CREATE DATABASE image_processor;
+        GRANT ALL PRIVILEGES ON DATABASE image_processor TO ${PROCESSOR_DB_USER};
+    EOSQL
+---
+# 儲存資源 (PostgreSQL 使用 NFS)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pgdata-pv
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: default
+  nfs:
+    # 引用自 nfs-server-service.manga-reader.svc.cluster.local
+    server: nfs-server.example.com 
+    path: /exported/path/postgres-data # 參考 manga-reader-nfs-config: NFS_PATH_PGDATA
+#---
+# Samba (SMB) 設定參考 (目前註解)
+# apiVersion: v1
+# kind: PersistentVolume
+# metadata:
+#   name: uploads-smb-pv
+#   namespace: manga-reader
+# spec:
+#   capacity:
+#     storage: 20Gi
+#   accessModes:
+#     - ReadWriteMany
+#   persistentVolumeReclaimPolicy: Retain
+#   storageClassName: ""
+#   csi:
+#     driver: smb.csi.k8s.io
+#     readOnly: false
+#     volumeHandle: unique-volume-id-uploads
+#     volumeAttributes:
+#       source: "//<samba-server>/uploads"
+#     nodeStageSecretRef:
+#       name: smb-secret
+#       namespace: manga-reader
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: uploads-cache-pvc
+#   namespace: manga-reader
+# spec:
+#   accessModes:
+#   - ReadWriteMany
+#   resources:
+#     requests:
+#       storage: 20Gi
+#   volumeName: uploads-smb-pv
+#   storageClassName: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgdata-pvc
+  namespace: manga-reader
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: default
+---
+# PostgreSQL 部署
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manga-reader-postgres
+  namespace: manga-reader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: postgres
+        - name: WEB_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: WEB_DB_USER
+        - name: WEB_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: WEB_DB_PASSWORD
+        - name: PROCESSOR_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: PROCESSOR_DB_USER
+        - name: PROCESSOR_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: PROCESSOR_DB_PASSWORD
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: pgdata-pvc
+      - name: init-script
+        configMap:
+          name: postgres-init-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: manga-reader-postgres
+  namespace: manga-reader
+spec:
+  selector:
+    app: postgres
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+---
+# Web Server 部署
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manga-reader-webserver
+  namespace: manga-reader
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:
+      containers:
+      - name: manga-reader
+        image: home.local/manga-reader:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: WEB_DATABASE_URL
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: BETTER_AUTH_SECRET
+        - name: BETTER_AUTH_URL
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: BETTER_AUTH_URL
+        - name: DISCORD_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: DISCORD_CLIENT_ID
+        - name: DISCORD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: DISCORD_CLIENT_SECRET
+        - name: NODE_ENV
+          value: development
+        volumeMounts:
+        # 選配掛載：預設使用 emptyDir (Pod 內暫存)，若需持久化可改回 PVC
+        - name: uploads-volume
+          mountPath: /app/uploads
+      volumes:
+      - name: uploads-volume
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: manga-reader-web-service
+  namespace: manga-reader
+spec:
+  selector:
+    app: webserver
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+    nodePort: 30080
+  type: NodePort
+---
+# Image Processor 部署
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-processor-deployment
+  namespace: manga-reader
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: image-processor
+  template:
+    metadata:
+      labels:
+        app: image-processor
+    spec:
+      containers:
+      - name: image-processor
+        image: image-processor:latest
+        ports:
+        - containerPort: 3001
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "125m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        envFrom:
+        - configMapRef:
+            name: image-processor-config
+        env:
+        - name: DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: PROCESSOR_DB_URL
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: PROCESSOR_DB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: PROCESSOR_DB_PASSWORD
+        - name: POSTGRES_DB
+          value: "image_processor"
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /uploads
+        - name: cache-volume
+          mountPath: /cache
+      volumes:
+      - name: uploads-volume
+        emptyDir: {}
+      - name: cache-volume
+        nfs:
+          # 引用自 nfs-server-service.manga-reader.svc.cluster.local
+          server: nfs-server.example.com
+          path: /exported/path/cache # 參考 manga-reader-nfs-config: NFS_PATH_CACHE
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-processor-service
+  namespace: manga-reader
+spec:
+  selector:
+    app: image-processor
+  ports:
+  - protocol: TCP
+    port: 3001
+    targetPort: 3001
+    nodePort: 30081
+  type: NodePort
