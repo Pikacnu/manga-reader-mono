@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgres://manga_user:manga_password@postgres:5432/manga_db
+      - BETTER_AUTH_SECRET="supersecret"
+      - BETTER_AUTH_URL=http://localhost:3000
+      - DB_USERNAME=manga_user
+      - DB_PASSWORD=manga_password
+      - DISCORD_CLIENT_ID="DC_APP_ID"
+      - DISCORD_CLIENT_SECRET="DC_APP_SECRET"
+      - IMAGE_SERVER_URL=http://localhost:3001
+    depends_on:
+      - postgres
+    volumes:
+      - ./uploads:/app/uploads
+
+  image-processor:
+    build:
+      context: ./apps/image-processer
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://processor_user:processor_password@postgres:5432/image_processor
+    depends_on:
+      - postgres
+    volumes:
+      - ./uploads:/app/uploads
+
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/initdb.sql
+
+volumes:
+  postgres-data:

@@ -7,7 +7,7 @@ import { db } from '@/db';
 import { book, chapter, image, page } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { writeFile } from 'fs/promises';
-import { isWarpedImageServer } from '@/src/utils/config';
+import { imageServerURL, isWarpedImageServer } from '@/src/utils/config';
 import { readFile } from 'fs/promises';
 
 const uploadDir = './uploads';
@@ -217,17 +217,14 @@ async function warpFileHandler({
   bookId: string;
   chapterId: string | null;
 }) {
-  const response = await fetch(
-    `${process.env.WARPED_IMAGE_SERVER_URL}/upload`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type':
-          req.headers.get('Content-Type') || 'application/octet-stream',
-      },
-      body: req.body,
+  const response = await fetch(`${imageServerURL}/upload`, {
+    method: 'POST',
+    headers: {
+      'Content-Type':
+        req.headers.get('Content-Type') || 'application/octet-stream',
     },
-  );
+    body: req.body,
+  });
   if (!response.ok) {
     return NextResponse.json(
       { error: 'Error uploading to Warped Image Server' },

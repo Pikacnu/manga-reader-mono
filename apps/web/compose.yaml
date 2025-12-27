@@ -29,7 +29,7 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      - DATABASE_URL=postgres://${DB_USERNAME}:${DB_PASSWORD}@localhost:5432/manga_db
+      - DATABASE_URL=postgres://${DB_USERNAME}:${DB_PASSWORD}@postgresql:5432/manga_db
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - BETTER_AUTH_URL=${BETTER_AUTH_URL}
       - NODE_ENV=development

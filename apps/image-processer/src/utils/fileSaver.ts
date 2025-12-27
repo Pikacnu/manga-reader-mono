@@ -5,6 +5,7 @@ import {
   S3_SECRET_ACCESS_KEY,
   S3_BUCKET_NAME,
 } from './config';
+import { join } from 'node:path';
 
 export class FileSaver {
   private static instance: FileSaver;
@@ -30,7 +31,7 @@ export class FileSaver {
   }
 
   async saveFileToDisk(id: string, data: BunFile): Promise<void> {
-    await this.s3Client.write(id, data);
+    await this.s3Client.write(join('/', id), data);
   }
 
   async getFileFromDisk(id: string): Promise<Uint8Array | null> {

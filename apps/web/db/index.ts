@@ -4,7 +4,7 @@ import { Pool } from 'pg';
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@localhost:5432/manga_reader`,
+    `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@postgres:5432/manga_db`,
 });
 
 const db = drizzle(pool);

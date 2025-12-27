@@ -1,5 +1,5 @@
 {
-  "id": "23c3ed4a-e084-4343-bfd8-9cdfb6c66b21",
+  "id": "0f509f7c-2d99-4a0a-a23d-c58b24462a04",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -126,11 +126,18 @@
           "primaryKey": false,
           "notNull": true
         },
-        "cover_url": {
-          "name": "cover_url",
+        "author": {
+          "name": "author",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
+        },
+        "cover_id": {
+          "name": "cover_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
         },
         "description": {
           "name": "description",
@@ -164,6 +171,29 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "reader_pages_per_view": {
+          "name": "reader_pages_per_view",
+          "type": "pages_per_view",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'two'"
+        },
+        "reader_page_direction": {
+          "name": "reader_page_direction",
+          "type": "page_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'right'"
+        },
+        "views": {
+          "name": "views",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         }
       },
       "indexes": {},
@@ -200,7 +230,7 @@
         },
         "book_id": {
           "name": "book_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -267,7 +297,7 @@
         },
         "book_id": {
           "name": "book_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -285,10 +315,10 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "date",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -326,6 +356,174 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.favorite": {
+      "name": "favorite",
+      "schema": "",
+      "columns": {
+        "idx": {
+          "name": "idx",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "book_idx": {
+          "name": "book_idx",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "favorited_at": {
+          "name": "favorited_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "favorite_book_idx_book_idx_fk": {
+          "name": "favorite_book_idx_book_idx_fk",
+          "tableFrom": "favorite",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_idx"
+          ],
+          "columnsTo": [
+            "idx"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "favorite_user_id_user_id_fk": {
+          "name": "favorite_user_id_user_id_fk",
+          "tableFrom": "favorite",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.history": {
+      "name": "history",
+      "schema": "",
+      "columns": {
+        "idx": {
+          "name": "idx",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "book_idx": {
+          "name": "book_idx",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "page_number": {
+          "name": "page_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "viewed_at": {
+          "name": "viewed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "history_book_idx_book_idx_fk": {
+          "name": "history_book_idx_book_idx_fk",
+          "tableFrom": "history",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_idx"
+          ],
+          "columnsTo": [
+            "idx"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "history_user_id_user_id_fk": {
+          "name": "history_user_id_user_id_fk",
+          "tableFrom": "history",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.image": {
+      "name": "image",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "image_path": {
+          "name": "image_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.page": {
       "name": "page",
       "schema": "",
@@ -338,13 +536,13 @@
         },
         "book_id": {
           "name": "book_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "chapter_id": {
           "name": "chapter_id",
-          "type": "serial",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -354,8 +552,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "image_path": {
-          "name": "image_path",
+        "image_id": {
+          "name": "image_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -401,6 +599,77 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rating": {
+      "name": "rating",
+      "schema": "",
+      "columns": {
+        "idx": {
+          "name": "idx",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "book_idx": {
+          "name": "book_idx",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "score": {
+          "name": "score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rated_at": {
+          "name": "rated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rating_book_idx_book_idx_fk": {
+          "name": "rating_book_idx_book_idx_fk",
+          "tableFrom": "rating",
+          "tableTo": "book",
+          "columnsFrom": [
+            "book_idx"
+          ],
+          "columnsTo": [
+            "idx"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "rating_user_id_user_id_fk": {
+          "name": "rating_user_id_user_id_fk",
+          "tableFrom": "rating",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -605,74 +874,26 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
-    },
-    "public.views": {
-      "name": "views",
-      "schema": "",
-      "columns": {
-        "idx": {
-          "name": "idx",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "book_idx": {
-          "name": "book_idx",
-          "type": "serial",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "viewed_at": {
-          "name": "viewed_at",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "views_book_idx_book_idx_fk": {
-          "name": "views_book_idx_book_idx_fk",
-          "tableFrom": "views",
-          "tableTo": "book",
-          "columnsFrom": [
-            "book_idx"
-          ],
-          "columnsTo": [
-            "idx"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
-        },
-        "views_user_id_user_id_fk": {
-          "name": "views_user_id_user_id_fk",
-          "tableFrom": "views",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.page_direction": {
+      "name": "page_direction",
+      "schema": "public",
+      "values": [
+        "left",
+        "right"
+      ]
+    },
+    "public.pages_per_view": {
+      "name": "pages_per_view",
+      "schema": "public",
+      "values": [
+        "one",
+        "two"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

@@ -259,7 +259,7 @@ metadata:
   name: manga-reader-webserver
   namespace: manga-reader
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: webserver

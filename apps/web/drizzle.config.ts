@@ -7,6 +7,6 @@ export default defineConfig({
   dbCredentials: {
     url:
       process.env.DATABASE_URL! ||
-      `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@postgresql:5432/manga_reader`,
+      `postgresql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@postgres:5432/manga_db`,
   },
 });

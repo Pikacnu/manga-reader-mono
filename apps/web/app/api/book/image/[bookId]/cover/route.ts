@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { writeFile, mkdir } from 'fs/promises';
 import { getSession } from '@/src/utils/authSession';
 import { v7 } from 'uuid';
-import { isWarpedImageServer } from '@/src/utils/config';
+import { imageServerURL, isWarpedImageServer } from '@/src/utils/config';
 
 export const GET = async (
   req: Request,
@@ -29,8 +29,7 @@ export const GET = async (
     return NextResponse.json({ error: 'Cover not found' }, { status: 404 });
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_IMAGE_SERVER_URL || 'http://localhost:3002';
+  const baseUrl = imageServerURL || 'http://localhost:3001';
   return NextResponse.redirect(`${baseUrl}/image/${bookCoverPath.coverId}`);
 };
 

@@ -53,6 +53,7 @@ export type Page = {
   isBlurred?: boolean;
   isBlank?: boolean;
   imageUrl: string;
+  getImageUrl?: (width: number) => string;
   imageId: string;
   pageNumber: number;
 };

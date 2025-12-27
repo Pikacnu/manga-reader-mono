@@ -10,14 +10,28 @@ import { FileCacher } from '../utils/fileCacher';
 import type { MiniifyOptmizeType, WithSrc } from '../utils/type';
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { corsHeaders } from '../utils/cors';
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const { src, w, q } = Object.fromEntries(
     url.searchParams,
   ) as unknown as Partial<WithSrc<MiniifyOptmizeType>>;
-  const width = w ? Number(w) : 640;
+  const width = w ? Math.round(Number(w)) : 640;
   const quality = q ? Number(q) : 75;
+
+  if (
+    quality < 1 ||
+    quality > 100 ||
+    isNaN(quality) ||
+    width < 1 ||
+    isNaN(width) ||
+    !src ||
+    quality % 1 !== 0 ||
+    width % 1 !== 0
+  ) {
+    return new Response('Invalid parameters', { status: 400 });
+  }
 
   const ImageCacherInstance = RAMCacher.getInstance();
   const fileSaverInstance = FileSaver.getInstance();
@@ -30,6 +44,7 @@ export async function GET(request: Request): Promise<Response> {
     if (cachedImageData) {
       return new Response(cachedImageData, {
         headers: {
+          ...corsHeaders,
           'Content-Type': 'image/webp',
           'Cache-Control': `public, max-age=${CACHE_MAX_AGE}, immutable`,
         },
@@ -57,6 +72,7 @@ export async function GET(request: Request): Promise<Response> {
 
     return new Response(cacheData, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'image/webp',
         'Cache-Control': `public, max-age=${CACHE_MAX_AGE}, immutable`,
       },
@@ -142,6 +158,7 @@ export async function GET(request: Request): Promise<Response> {
 
     return new Response(processedBuffer, {
       headers: {
+        ...corsHeaders,
         'Content-Type': 'image/webp',
         'Cache-Control': `public, max-age=${CACHE_MAX_AGE}, immutable`,
       },

@@ -78,7 +78,13 @@ export default function BookPage({
           pageCountPerView={bookInfo?.pagesPerView}
           pages={pageContent.map((page) => ({
             ...page,
-            imageUrl: imageLoader({ src: page.imageId, width: 1200 }),
+            getImageUrl: (width) =>
+              imageLoader({ src: page.imageId, width, quality: 100 }),
+            imageUrl: imageLoader({
+              src: page.imageId,
+              width: 768,
+              quality: 100,
+            }),
           }))}
         ></MangaReader>
       ) : (

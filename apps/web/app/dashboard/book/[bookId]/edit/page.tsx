@@ -201,6 +201,7 @@ export default function EditPageLayout({
                 .filter(
                   ([key]) =>
                     ![
+                      'id',
                       'views',
                       'tags',
                       'pageDirection',

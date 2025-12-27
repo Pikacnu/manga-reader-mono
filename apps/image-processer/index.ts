@@ -114,11 +114,6 @@ const saveCheckInterval = setInterval(async () => {
       }
 
       try {
-        console.log(
-          `File ${fileRecord.filePath} with ID ${fileRecord.id} marked as saved.`,
-        );
-        const savedPath = UPLOADS_DIR + '/' + fileRecord.id;
-
         await fileSaverInstance.saveFileToDisk(
           fileRecord.id,
           file(fileRecord.filePath),
@@ -132,6 +127,9 @@ const saveCheckInterval = setInterval(async () => {
 
         // Delete local file
         await file(fileRecord.filePath).delete();
+        console.log(
+          `File ${fileRecord.filePath} with ID ${fileRecord.id} marked as saved.`,
+        );
       } catch (fileError) {
         console.error(`Error saving file ${fileRecord.filePath}:`, fileError);
         // Reset processing status on error

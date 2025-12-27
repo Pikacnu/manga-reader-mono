@@ -1,1 +1,0 @@
-ALTER TABLE "book" RENAME COLUMN "cover_url" TO "cover_path";

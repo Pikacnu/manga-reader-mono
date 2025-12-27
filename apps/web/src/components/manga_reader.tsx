@@ -34,6 +34,7 @@ export function MangaReader({
   const [deviceSize, setDeviceSize] = useState<DeviceSize>();
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
+  const [clientWidth, setClientWidth] = useState(0);
 
   const minSwipeDistance = 50;
 
@@ -115,16 +116,15 @@ export function MangaReader({
     return () => clearTimeout(timer);
   }, [currentPage, bookId, isLoading]);
 
-  // View count (threshold)
+  // Resize handler
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetch('/api/book/view', {
-        method: 'POST',
-        body: JSON.stringify({ bookIdx: bookId }),
-      });
-    }, 10000);
-    return () => clearTimeout(timer);
-  }, [bookId]);
+    const handleResize = () => {
+      setClientWidth(document.body.clientWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getPageBase64 = async (page: Page) => {
     if (!page || !('id' in page)) return null;
@@ -138,7 +138,17 @@ export function MangaReader({
     loadedPages.current.add(page.id.toString());
 
     try {
-      const response = await fetch(page.imageUrl);
+      const response = await fetch(
+        page.getImageUrl
+          ? page.getImageUrl(
+              deviceSize === DeviceSize.Small
+                ? Math.min(clientWidth, 600)
+                : deviceSize === DeviceSize.Medium
+                ? Math.min(clientWidth / 2, 800)
+                : Math.min(clientWidth / 2, 1200),
+            )
+          : page.imageUrl,
+      );
       const blob = await response.blob();
       if (!blob || blob.size === 0) {
         pageBase64URLs.current.set(page.id.toString(), '');
@@ -244,6 +254,41 @@ export function MangaReader({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
+            <div className=' absolute opacity-0 w-full h-full -z-20 select-none'>
+              <MangaPage
+                imageUrl={getPageURL(getPage(currentPage + 2)) || ''}
+                isBlurred={pages[currentPage]?.isBlurred}
+                isBlank={
+                  pages[currentPage]?.isBlank ||
+                  !getPageURL(getPage(currentPage + 1))
+                }
+                objectPosition={
+                  deviceSize === DeviceSize.Small ||
+                  pageCountPerView === PagesPerView.ONE
+                    ? 'center'
+                    : 'right'
+                }
+              />
+              {deviceSize !== DeviceSize.Small &&
+                pageCountPerView !== PagesPerView.ONE && (
+                  <MangaPage
+                    imageUrl={
+                      getPageURL(
+                        getPage(
+                          currentPage +
+                            2 +
+                            (startDirection === PageDirection.RIGHT ? 1 : 0),
+                        ),
+                      ) || ''
+                    }
+                    isBlurred={pages[currentPage]?.isBlurred}
+                    isBlank={
+                      pages[currentPage]?.isBlank ||
+                      !getPageURL(getPage(currentPage + 1))
+                    }
+                  />
+                )}
+            </div>
             <div className=' z-10 absolute inset-0 bg-black opacity-0 cursor-pointer w-full h-full grid grid-cols-2'>
               <div
                 onClick={() => {
