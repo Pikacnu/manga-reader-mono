@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { page } from '@/db/schema';
-import { imageServerURL, imageServerURLInner } from '@/src/utils/config';
+import { imageServerURLInner } from '@/src/utils/config';
 import { and, eq } from 'drizzle-orm';
 //import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';

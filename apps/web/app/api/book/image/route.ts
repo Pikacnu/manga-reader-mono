@@ -9,7 +9,6 @@ import { desc, eq } from 'drizzle-orm';
 import { writeFile } from 'fs/promises';
 import {
   IMAGE_SERVER_API_KEY,
-  imageServerURL,
   imageServerURLInner,
   isWarpedImageServer,
 } from '@/src/utils/config';
