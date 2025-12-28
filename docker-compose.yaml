@@ -17,6 +17,7 @@ services:
       - DISCORD_CLIENT_ID="DC_APP_ID"
       - DISCORD_CLIENT_SECRET="DC_APP_SECRET"
       - IMAGE_SERVER_URL=http://localhost:3001
+      - IMAGE_SERVER_API_KEY="image_processor_key"
     depends_on:
       - postgres
     volumes:
@@ -31,6 +32,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://processor_user:processor_password@postgres:5432/image_processor
+      - API_KEY="image_processor_key"
     depends_on:
       - postgres
     volumes:

@@ -28,3 +28,4 @@ export const S3_VIRTUAL_HOSTED_STYLE =
   process.env.S3_VIRTUAL_HOSTED_STYLE !== undefined
     ? process.env.S3_VIRTUAL_HOSTED_STYLE === 'true' || false
     : false;
+export const API_KEY = process.env.API_KEY || 'default_api_key';

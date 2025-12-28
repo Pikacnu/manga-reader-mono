@@ -27,6 +27,11 @@ export enum AcceptJsonRequestFormat {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (
+    request.headers.get('Authorization') !== `Bearer ${process.env.API_KEY}`
+  ) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const requestUUID = randomUUIDv7();
   let zippFileUUID: string | null = null;
 

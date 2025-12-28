@@ -7,7 +7,11 @@ import { db } from '@/db';
 import { book, chapter, image, page } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { writeFile } from 'fs/promises';
-import { imageServerURL, isWarpedImageServer } from '@/src/utils/config';
+import {
+  IMAGE_SERVER_API_KEY,
+  imageServerURL,
+  isWarpedImageServer,
+} from '@/src/utils/config';
 import { readFile } from 'fs/promises';
 
 const uploadDir = './uploads';
@@ -222,6 +226,7 @@ async function warpFileHandler({
     headers: {
       'Content-Type':
         req.headers.get('Content-Type') || 'application/octet-stream',
+      Authorization: `Bearer ${IMAGE_SERVER_API_KEY}`,
     },
     body: req.body,
   });

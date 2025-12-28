@@ -6,7 +6,11 @@ import { eq } from 'drizzle-orm';
 import { writeFile, mkdir } from 'fs/promises';
 import { getSession } from '@/src/utils/authSession';
 import { v7 } from 'uuid';
-import { imageServerURL, isWarpedImageServer } from '@/src/utils/config';
+import {
+  imageServerURL,
+  isWarpedImageServer,
+  IMAGE_SERVER_API_KEY,
+} from '@/src/utils/config';
 
 export const GET = async (
   req: Request,
@@ -66,6 +70,7 @@ export const POST = async (
       method: 'POST',
       headers: {
         'Content-Type': ContentType,
+        Authorization: `Bearer ${IMAGE_SERVER_API_KEY}`,
       },
       body: Buffer.from(fileBuffer),
     });

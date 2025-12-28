@@ -28,6 +28,7 @@ export function MangaPage({
         }}
         fill={true}
         src={imageUrl}
+        priority={true}
         alt='Manga Page'
         className={`object-contain ${isBlur ? 'blur-lg cursor-pointer' : ''} `}
         style={{ objectPosition }}
