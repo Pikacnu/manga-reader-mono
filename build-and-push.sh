@@ -6,7 +6,7 @@ set -e
 # Variables
 IMAGE_NAME="manga-reader"
 IMAGE_TAG="latest"
-DOCKER_REGISTRY="192.168.0.101:5000"
+DOCKER_REGISTRY="localhost:5000"
 
 # Build Docker images with multi-architecture support
 function build_images() {

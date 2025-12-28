@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bots
+  labels:
+    app: bots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bots
+  template:
+    metadata:
+      labels:
+        app: bots
+    spec:
+      containers:
+        - name: bots
+          # Replace the image below with your registry/name:tag
+          image: my-registry/manga-bots:latest
+          imagePullPolicy: IfNotPresent
+          # Command mirrors Dockerfile default for Bun
+          command: ["bun", "src/index.ts"]
+          env:
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
