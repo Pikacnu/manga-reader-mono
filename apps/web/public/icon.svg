@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#333333;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bgGrad)"/>
+  
+  <!-- Stylized Manga Book / "M" Shape -->
+  <path d="M120 380 V160 Q120 130 150 130 H240 Q256 130 256 150 Q256 130 272 130 H362 Q392 130 392 160 V380 Q392 390 380 385 L256 330 L132 385 Q120 390 120 380 Z" fill="white"/>
+  
+  <!-- Center Divider -->
+  <rect x="251" y="150" width="10" height="180" rx="5" fill="#333333" opacity="0.2"/>
+  
+  <!-- Action/Speed Lines -->
+  <path d="M420 180 L460 160" stroke="#FF3D00" stroke-width="12" stroke-linecap="round"/>
+  <path d="M430 230 L470 220" stroke="#FF3D00" stroke-width="12" stroke-linecap="round"/>
+  <path d="M420 280 L460 300" stroke="#FF3D00" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- Accent Sparkle -->
+  <path d="M100 120 L110 90 L120 120 L150 130 L120 140 L110 170 L100 140 L70 130 Z" fill="#FFD600"/>
+</svg>

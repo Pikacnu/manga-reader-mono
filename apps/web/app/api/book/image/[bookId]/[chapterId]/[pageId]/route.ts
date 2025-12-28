@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { page } from '@/db/schema';
-import { imageServerURL } from '@/src/utils/config';
+import { imageServerURL, imageServerURLInner } from '@/src/utils/config';
 import { and, eq } from 'drizzle-orm';
 //import { readFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
@@ -32,7 +32,7 @@ export const GET = async (
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    const baseUrl = imageServerURL || 'http://localhost:3001';
+    const baseUrl = imageServerURLInner || 'http://localhost:3001';
     return NextResponse.redirect(`${baseUrl}/image/${result.imageId}`);
   } catch (error) {
     console.error('Error fetching page info:', error);

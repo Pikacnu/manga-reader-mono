@@ -10,6 +10,7 @@ import {
   imageServerURL,
   isWarpedImageServer,
   IMAGE_SERVER_API_KEY,
+  imageServerURLInner,
 } from '@/src/utils/config';
 
 export const GET = async (
@@ -33,7 +34,7 @@ export const GET = async (
     return NextResponse.json({ error: 'Cover not found' }, { status: 404 });
   }
 
-  const baseUrl = imageServerURL || 'http://localhost:3001';
+  const baseUrl = imageServerURLInner || 'http://localhost:3001';
   return NextResponse.redirect(`${baseUrl}/image/${bookCoverPath.coverId}`);
 };
 

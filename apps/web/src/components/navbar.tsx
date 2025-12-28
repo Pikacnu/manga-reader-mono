@@ -8,9 +8,11 @@ import {
   SearchIcon,
   FileText,
   Shield,
+  LogOut,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { authClient } from '../utils/authClient';
 
 export default function NavBar({ className }: { className?: string }) {
   const session = useSession();
@@ -117,6 +119,23 @@ export default function NavBar({ className }: { className?: string }) {
             <Shield size={20} />
           </Link>
         </li>
+        {!!session && (
+          <li>
+            <button
+              onClick={() => {
+                authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.push('/');
+                    },
+                  },
+                });
+              }}
+            >
+              <LogOut />
+            </button>
+          </li>
+        )}
       </ul>
       <form
         onSubmit={handleSearch}

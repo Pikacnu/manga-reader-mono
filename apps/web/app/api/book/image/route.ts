@@ -10,6 +10,7 @@ import { writeFile } from 'fs/promises';
 import {
   IMAGE_SERVER_API_KEY,
   imageServerURL,
+  imageServerURLInner,
   isWarpedImageServer,
 } from '@/src/utils/config';
 import { readFile } from 'fs/promises';
@@ -221,7 +222,7 @@ async function warpFileHandler({
   bookId: string;
   chapterId: string | null;
 }) {
-  const response = await fetch(`${imageServerURL}/upload`, {
+  const response = await fetch(`${imageServerURLInner}/upload`, {
     method: 'POST',
     headers: {
       'Content-Type':

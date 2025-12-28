@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { authClient } from '@/src/utils/auth-client';
+import { authClient } from '@/src/utils/authClient';
 
 export const SessionContext = createContext<{
   session: Session | null;
