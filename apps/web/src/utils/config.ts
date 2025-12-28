@@ -8,3 +8,4 @@ export const MailUser = process.env.MAIL_USER || 'default_mail_user';
 export const MailPassword =
   process.env.POSTFIX_PASSWORD || 'default_mail_password';
 export const MailHost = process.env.MAIL_HOST || 'localhost';
+export const BOT_SECRET = process.env.BOT_SECRET || 'default_bot_secret';

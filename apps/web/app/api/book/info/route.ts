@@ -8,16 +8,7 @@ import {
 } from '@/src/types/manga';
 import { db } from '@/db';
 import { book } from '@/db/schema';
-import {
-  and,
-  eq,
-  arrayContained,
-  like,
-  desc,
-  or,
-  sql,
-  arrayContains,
-} from 'drizzle-orm';
+import { and, eq, like, desc, or, sql, arrayContains } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   const session = await getSession(request);

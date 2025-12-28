@@ -38,7 +38,7 @@ export const POST = async (req: Request) => {
   }
 };
 
-async function locaFileHandler({
+export async function locaFileHandler({
   req,
   bookId,
   chapterId,
@@ -212,7 +212,7 @@ async function locaFileHandler({
   );
 }
 
-async function warpFileHandler({
+export async function warpFileHandler({
   req,
   bookId,
   chapterId,
