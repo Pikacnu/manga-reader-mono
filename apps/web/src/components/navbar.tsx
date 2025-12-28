@@ -75,7 +75,7 @@ export default function NavBar({ className }: { className?: string }) {
     <nav
       className={`bg-gray-800 p-2 text-white ${className} self-start w-full flex flex-col md:flex-row justify-between items-center gap-3 md:gap-0 z-50`}
     >
-      <ul className='flex space-x-4 *:bg-black/10 *:hover:bg-black/40 *:active:bg-gray-600 *:rounded-full *:p-2 w-full md:w-auto justify-between md:justify-start px-2 md:px-0'>
+      <ul className='flex space-x-4 *:bg-black/10 *:hover:bg-black/40 *:active:bg-gray-600 *:rounded-full *:p-2 w-full md:w-auto justify-between md:justify-start px-2 md:px-0 items-center flex-row'>
         <li>
           <Link
             href='/'
@@ -120,21 +120,19 @@ export default function NavBar({ className }: { className?: string }) {
           </Link>
         </li>
         {!!session && (
-          <li>
-            <button
-              onClick={() => {
-                authClient.signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      router.push('/');
-                    },
+          <button
+            onClick={() => {
+              authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    router.push('/');
                   },
-                });
-              }}
-            >
-              <LogOut />
-            </button>
-          </li>
+                },
+              });
+            }}
+          >
+            <LogOut />
+          </button>
         )}
       </ul>
       <form
