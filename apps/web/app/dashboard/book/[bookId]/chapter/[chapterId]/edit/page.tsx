@@ -36,8 +36,6 @@ import { CSS } from '@dnd-kit/utilities';
 const SortableItem = memo(function SortableItem({
   id,
   index,
-  bookId,
-  chapterId,
   imageId,
 }: {
   id: string | number;

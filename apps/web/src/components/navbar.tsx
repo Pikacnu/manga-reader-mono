@@ -10,7 +10,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function NavBar({ className }: { className?: string }) {
   const session = useSession();
@@ -18,7 +18,6 @@ export default function NavBar({ className }: { className?: string }) {
   const [search, setSearch] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestions = ['title', 'author', 'description', 'tags'];
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -49,6 +48,26 @@ export default function NavBar({ className }: { className?: string }) {
     });
     // Keep focus?
   };
+
+  useEffect(() => {
+    //Setup search from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const qParams: string[] = [];
+    suggestions.forEach((s) => {
+      const value = urlParams.get(s);
+      if (value) {
+        qParams.push(`${s}:${value}`);
+      }
+    });
+    const q = urlParams.get('q');
+    if (q) {
+      qParams.push(q);
+    }
+    if (qParams.length > 0) {
+      setSearch(qParams.join(' '));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <nav

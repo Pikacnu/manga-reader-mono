@@ -15,6 +15,7 @@
     "img:dev": "bun --filter image-processer dev",
     "img:generate": "bun --filter image-processer generate",
     "img:migrate": "bun --filter image-processer migrate",
-    "dev": "bun --filter \"*\" dev"
+    "dev": "bun --filter \"*\" dev",
+    "db:migrate": "bun --filter \"*\" migrate"
   }
 }

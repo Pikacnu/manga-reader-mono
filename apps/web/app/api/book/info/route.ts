@@ -8,7 +8,16 @@ import {
 } from '@/src/types/manga';
 import { db } from '@/db';
 import { book } from '@/db/schema';
-import { and, eq, arrayContained, like, desc, or, sql } from 'drizzle-orm';
+import {
+  and,
+  eq,
+  arrayContained,
+  like,
+  desc,
+  or,
+  sql,
+  arrayContains,
+} from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   const session = await getSession(request);
@@ -61,6 +70,7 @@ export const PUT = async (request: NextRequest) => {
   const { bookId, ...updateData } =
     (await request.json()) as Partial<BookInfo> & {
       bookId: number;
+      tags: string;
     };
   if (!bookId || isNaN(bookId)) {
     return NextResponse.json({ error: 'Invalid book ID' }, { status: 400 });
@@ -79,6 +89,12 @@ export const PUT = async (request: NextRequest) => {
         title: updateData.title,
         author: updateData.author,
         description: updateData.description,
+        ...(updateData.tags &&
+        updateData.tags !== undefined &&
+        updateData.tags.length > 0 &&
+        updateData.tags.split(',').length > 0
+          ? { tags: updateData.tags.split(',') }
+          : {}),
         readerPageDirection: updateData.pageDirection || PageDirection.RIGHT,
         readerPagesPerView: updateData.pagesPerView || PagesPerView.TWO,
       })
@@ -185,7 +201,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const tagsArray = tags ? (tags.split(',') as string[]) : undefined;
+  const tagsArray = tags
+    ? (decodeURIComponent(tags).split(',') as string[])
+    : undefined;
 
   const filters = [];
   if (q) {
@@ -206,8 +224,13 @@ export async function GET(request: NextRequest) {
   if (description) {
     filters.push(like(book.description, `%${description}%`));
   }
-  if (tagsArray) {
-    filters.push(arrayContained(book.tags, tagsArray));
+  if (tagsArray && tagsArray.length > 0) {
+    filters.push(
+      arrayContains(
+        sql`(${book.tags}::jsonb)`, // Explicitly cast book.tags to JSONB
+        sql`(${JSON.stringify(tagsArray)}::jsonb)`, // Convert tagsArray to JSONB
+      ),
+    );
   }
   try {
     const results = await db
@@ -232,7 +255,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching manga info:', error);
     return NextResponse.json(
-      { error: 'Error fetching manga info' },
+      { error: `Error fetching manga info` },
       { status: 500 },
     );
   }

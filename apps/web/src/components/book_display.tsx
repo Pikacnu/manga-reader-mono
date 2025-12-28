@@ -14,16 +14,26 @@ interface BookWithId extends BookInfo {
 export default function BookDisplay({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    tags?: string;
+    title?: string;
+    author?: string;
+    description?: string;
+    q?: string;
+  }>;
 }) {
   const [books, setBooks] = useState<BookWithId[]>([]);
-  const q = use(searchParams).q;
+  const { tags, title, author, description, q } = use(searchParams);
 
   const [sortBy, setSortBy] = useState<'latest' | 'popular'>('latest');
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams();
+    if (tags) params.append('tags', tags);
+    if (title) params.append('title', title);
+    if (author) params.append('author', author);
+    if (description) params.append('description', description);
     if (q) params.append('q', q);
     params.append('sort', sortBy);
     params.append('page', page.toString());
@@ -38,7 +48,7 @@ export default function BookDisplay({
         }
       })
       .catch(console.error);
-  }, [q, sortBy, page]);
+  }, [q, sortBy, page, tags, title, author, description]);
 
   // Reset page when search or sort changes
   // useEffect(() => {

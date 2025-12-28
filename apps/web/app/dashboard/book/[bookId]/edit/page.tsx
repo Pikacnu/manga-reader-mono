@@ -203,7 +203,7 @@ export default function EditPageLayout({
                     ![
                       'id',
                       'views',
-                      'tags',
+                      //'tags',
                       'pageDirection',
                       'pagesPerView',
                     ].includes(key),
