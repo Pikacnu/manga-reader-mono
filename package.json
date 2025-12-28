@@ -1,7 +1,20 @@
 {
-  "name": "manga-reader",
+  "name": "manga-reader-mono",
   "private": true,
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "scripts": {
+    "web:dev": "bun --filter manga-reader dev",
+    "web:build": "bun --filter manga-reader --bun next build",
+    "web:start": "bun --filter manga-reader --bun next start",
+    "web:lint": "bun --filter manga-reader eslint",
+    "web:generate": "bun --filter manga-reader generate",
+    "web:migrate": "bun --filter manga-reader migrate",
+    "img:start": "bun --filter image-processer start",
+    "img:dev": "bun --filter image-processer dev",
+    "img:generate": "bun --filter image-processer generate",
+    "img:migrate": "bun --filter image-processer migrate",
+    "dev": "bun --filter \"*\" dev"
+  }
 }

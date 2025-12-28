@@ -289,14 +289,29 @@ export default function EditPageLayout({
               const file = e.target.files?.[0];
               if (!file) return;
               startUpdateCoverTransition(async () => {
-                await fetch(`/api/book/image/${bookId}/cover`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': file.type,
+                const response = await fetch(
+                  `/api/book/image/${bookId}/cover`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': file.type,
+                    },
+                    body: file,
                   },
-                  body: file,
+                );
+                if (!response.ok) {
+                  console.log('Failed to upload cover image');
+                  startTransition(() => {});
+                  return;
+                }
+                startTransition(async () => {
+                  const { imageId } = await response.json();
+                  setTimeout(() => {
+                    setCacheBookData(
+                      (prev) => ({ ...prev, coverId: imageId } as BookInfo),
+                    );
+                  }, 100);
                 });
-                startTransition(() => {});
               });
             }}
           />
@@ -328,14 +343,28 @@ export default function EditPageLayout({
               const file = e.dataTransfer.files[0];
               if (!file) return;
               startUpdateCoverTransition(async () => {
-                await fetch(`/api/book/image/${bookId}/cover`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': file.type,
+                const response = await fetch(
+                  `/api/book/image/${bookId}/cover`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': file.type,
+                    },
+                    body: file,
                   },
-                  body: file,
+                );
+                if (!response.ok) {
+                  console.log('Failed to upload cover image');
+                  startTransition(() => {});
+                }
+                startTransition(async () => {
+                  const { imageId } = await response.json();
+                  setTimeout(() => {
+                    setCacheBookData(
+                      (prev) => ({ ...prev, coverId: imageId } as BookInfo),
+                    );
+                  }, 100);
                 });
-                startTransition(() => {});
               });
             }}
           >
@@ -354,7 +383,7 @@ export default function EditPageLayout({
             )}
             <Image
               loader={imageLoader}
-              src={optimisticBookData?.coverId || ''}
+              src={optimisticBookData?.coverId || 'blank'}
               alt='Book Cover'
               className='object-contain'
               fill={true}

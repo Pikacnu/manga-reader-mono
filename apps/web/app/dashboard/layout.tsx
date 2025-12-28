@@ -1,5 +1,10 @@
 import NavBar from '@/src/components/navbar';
 
+export const metadata = {
+  title: 'Dashboard - Manga Reader',
+  description: 'Dashboard layout for Manga Reader application',
+};
+
 export default function DashboardLayout({
   children,
 }: Readonly<{

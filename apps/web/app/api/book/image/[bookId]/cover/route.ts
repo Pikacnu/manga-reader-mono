@@ -62,16 +62,13 @@ export const POST = async (
   }
 
   if (isWarpedImageServer) {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_IMAGE_SERVER_URL}/api/book/image/${bookId}/cover`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': ContentType,
-        },
-        body: Buffer.from(fileBuffer),
+    const response = await fetch(`${imageServerURL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': ContentType,
       },
-    );
+      body: Buffer.from(fileBuffer),
+    });
     if (!response.ok) {
       return NextResponse.json(
         { error: 'Error uploading to Image Server' },
@@ -87,7 +84,10 @@ export const POST = async (
       .update(book)
       .set({ coverId: data.imageIds[0] })
       .where(eq(book.idx, Number(bookId)));
-    return NextResponse.json({ message: 'Cover uploaded successfully' });
+    return NextResponse.json({
+      message: 'Cover uploaded successfully',
+      imageId: data.imageIds[0],
+    });
   }
 
   await mkdir('./uploads/book/covers', { recursive: true });

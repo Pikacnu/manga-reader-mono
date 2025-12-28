@@ -172,7 +172,7 @@ export default function BookPage({
         <div className='relative w-full aspect-2/3 lg:aspect-auto lg:h-[40vh] xl:h-[50vh] bg-gray-900'>
           <Image
             loader={imageLoader}
-            src={bookInfo?.coverId || ''}
+            src={bookInfo?.coverId || 'blank'}
             alt='Book Cover'
             fill={true}
             sizes='(max-width: 1024px) 100vw, 33vw'
@@ -183,7 +183,7 @@ export default function BookPage({
             <div className='relative w-full h-full'>
               <Image
                 loader={imageLoader}
-                src={bookInfo?.coverId || ''}
+                src={bookInfo?.coverId || 'blank'}
                 alt='Book Cover'
                 fill={true}
                 className='object-contain drop-shadow-2xl'

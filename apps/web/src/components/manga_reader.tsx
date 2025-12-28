@@ -15,6 +15,8 @@ export enum DeviceSize {
   Large = 'large',
 }
 
+const maxPagesToPreload = 20;
+
 export function MangaReader({
   pages = [],
   startDirection = PageDirection.RIGHT,
@@ -168,10 +170,18 @@ export function MangaReader({
         };
       });
     } catch (error) {
-      console.error('Error preloading page:', page.id, error);
+      console.error('Error preloading page:', page.id, page.imageUrl, error);
       loadedPages.current.delete(page.id.toString());
       pageBase64URLs.current.set(page.id.toString(), '');
       return null;
+    } finally {
+      if (pageBase64URLs.current.size > maxPagesToPreload) {
+        const keys = Array.from(pageBase64URLs.current.keys());
+        for (let i = 0; i < keys.length - maxPagesToPreload; i++) {
+          pageBase64URLs.current.delete(keys[i]);
+          loadedPages.current.delete(keys[i]);
+        }
+      }
     }
   };
 
@@ -254,41 +264,6 @@ export function MangaReader({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className=' absolute opacity-0 w-full h-full -z-20 select-none'>
-              <MangaPage
-                imageUrl={getPageURL(getPage(currentPage + 2)) || ''}
-                isBlurred={pages[currentPage]?.isBlurred}
-                isBlank={
-                  pages[currentPage]?.isBlank ||
-                  !getPageURL(getPage(currentPage + 1))
-                }
-                objectPosition={
-                  deviceSize === DeviceSize.Small ||
-                  pageCountPerView === PagesPerView.ONE
-                    ? 'center'
-                    : 'right'
-                }
-              />
-              {deviceSize !== DeviceSize.Small &&
-                pageCountPerView !== PagesPerView.ONE && (
-                  <MangaPage
-                    imageUrl={
-                      getPageURL(
-                        getPage(
-                          currentPage +
-                            2 +
-                            (startDirection === PageDirection.RIGHT ? 1 : 0),
-                        ),
-                      ) || ''
-                    }
-                    isBlurred={pages[currentPage]?.isBlurred}
-                    isBlank={
-                      pages[currentPage]?.isBlank ||
-                      !getPageURL(getPage(currentPage + 1))
-                    }
-                  />
-                )}
-            </div>
             <div className=' z-10 absolute inset-0 bg-black opacity-0 cursor-pointer w-full h-full grid grid-cols-2'>
               <div
                 onClick={() => {
@@ -335,7 +310,7 @@ export function MangaReader({
                         currentPage +
                           (startDirection === PageDirection.RIGHT ? 1 : 0),
                       ),
-                    ) || ''
+                    ) || 'blank'
                   }
                   isBlurred={pages[currentPage]?.isBlurred}
                   isBlank={
@@ -362,7 +337,7 @@ export function MangaReader({
                             currentPage +
                               (startDirection === PageDirection.RIGHT ? 0 : 1),
                           ),
-                        ) || ''
+                        ) || 'blank'
                       }
                       isBlurred={pages[currentPage + 1]?.isBlurred}
                       isBlank={
