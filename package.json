@@ -6,8 +6,8 @@
   ],
   "scripts": {
     "web:dev": "bun --filter manga-reader dev",
-    "web:build": "bun --filter manga-reader --bun next build",
-    "web:start": "bun --filter manga-reader --bun next start",
+    "web:build": "bun --filter manga-reader build",
+    "web:start": "bun --filter manga-reader start",
     "web:lint": "bun --filter manga-reader eslint",
     "web:generate": "bun --filter manga-reader generate",
     "web:migrate": "bun --filter manga-reader migrate",
