@@ -7,6 +7,7 @@ import {
   SHARED_SSD_CACHE_DIR,
   MAX_SHARED_SSD_SIZE_GB,
   RAM_CACHE_EXPIRY_DURATION,
+  SHARED_SSD_CACHE_DURATION_IN_SECONDS,
 } from './src/utils/config';
 import ImageHandler from './src/api/image';
 import UploadHandler from './src/api/upload';
@@ -126,7 +127,14 @@ const saveCheckInterval = setInterval(async () => {
           .where(eq(ImageIdLink.id, fileRecord.id));
 
         // Delete local file
-        await file(fileRecord.filePath).delete();
+        try {
+          await fileCacherInstance.deleteTempUpload(fileRecord.filePath);
+        } catch (e) {
+          console.error(
+            `Error deleting file from cache for ID ${fileRecord.id}:`,
+            e,
+          );
+        }
         console.log(
           `File ${fileRecord.filePath} with ID ${fileRecord.id} marked as saved.`,
         );
@@ -186,29 +194,21 @@ const sharedSSDCleanupInterval = setInterval(async () => {
       for (const img of oldestImages) {
         if (totalSize <= thresholdBytes * 0.8) break; // Clean until 80% full
 
-        // Find all cache files for this image ID
-        // 1. Processed: {id}_{hash}.webp
-        // 2. Original: originals/{id}
-        const toDelete = files.filter((f) => {
-          const fileName = f.path.split(/[\\/]/).pop();
-          return fileName?.startsWith(`${img.id}_`) || fileName === img.id;
-        });
+        // 使用 FileCacher 統一處理刪除邏輯
+        const freedProcessed = await fileCacherInstance.deleteProcessedCache(
+          img.id,
+        );
+        const freedOriginal = await fileCacherInstance.deleteOriginalCache(
+          img.id,
+        );
 
-        for (const f of toDelete) {
-          try {
-            await unlink(f.path);
-            totalSize -= f.size;
-            console.log(`Deleted cache file: ${f.path}`);
-          } catch (e) {
-            console.error(`Error deleting cache file ${f.path}:`, e);
-          }
-        }
+        totalSize -= freedProcessed + freedOriginal;
       }
     }
   } catch (err) {
     console.error('Error during sharedSSDCleanupInterval:', err);
   }
-}, 60 * 60 * 1000); // Run every hour
+}, SHARED_SSD_CACHE_DURATION_IN_SECONDS * 1000);
 
 process.on('SIGINT', async () => {
   console.log('Gracefully shutting down...');

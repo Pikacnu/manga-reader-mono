@@ -1,0 +1,18 @@
+{
+  "name": "bots",
+  "module": "src/index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "puppeteer": "^24.34.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { SecretKey } from './config';
+import type { BodyInit } from 'bun';
 
 export const createSignature = (payload: BodyInit, secret: string) => {
   const timestamp = Math.floor(Date.now() / 1000).toString();

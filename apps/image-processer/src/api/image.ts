@@ -54,7 +54,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   // L3: Shared SSD Cache
-  const cachePath = fileCacherInstance.getCachePath(
+  const cachePath = fileCacherInstance.getProcessedCachePath(
     String(src),
     width,
     quality,

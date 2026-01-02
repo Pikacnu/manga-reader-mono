@@ -9,6 +9,8 @@ export const DB_URL =
 export const UPLOADS_DIR = process.env.UPLOADS_DIR || './uploads';
 export const SHARED_SSD_CACHE_DIR =
   process.env.SHARED_SSD_CACHE_DIR || './cache';
+export const SHARED_SSD_CACHE_DURATION_IN_SECONDS =
+  Number(process.env.SHARED_SSD_CACHE_DURATION_IN_SECONDS) || 60 * 60 * 1;
 export const CACHE_MAX_AGE =
   Number(process.env.CACHE_MAX_AGE) || 60 * 60 * 24 * 30;
 export const MAX_UPLOAD_SIZE =
