@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Manga Reader',
-  description: 'A manga reader built with Next.js and Tailwind CSS',
+  title: 'Pazik - Next Gen Manga Reader',
+  description: 'A modern manga reader With Resizable viewer',
   icons: {
     icon: '/icon.svg',
     shortcut: '/icon.svg',
