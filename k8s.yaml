@@ -10,7 +10,7 @@ metadata:
   name: manga-reader-nfs-config
   namespace: manga-reader
 data:
-  NFS_SERVER: "nfs-server.example.com"
+  NFS_SERVER: "nfs-server-url"
   NFS_PATH_PGDATA: "/exported/path/postgres-data"
   NFS_PATH_CACHE: "/exported/path/cache"
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: manga-reader
 spec:
   type: ExternalName
-  externalName: nfs-server.example.com
+  externalName: nfs-server-url
 ---
 # 整合後的 Secrets
 apiVersion: v1
@@ -54,6 +54,23 @@ stringData:
   # S3 配置 (Image Processor 使用)
   S3_ACCESS_KEY_ID: "any"
   S3_SECRET_ACCESS_KEY: "any"
+
+  # API Keys & Secrets
+  IMAGE_SERVER_API_KEY: "image_processor_key"
+  BOT_SECRET: "default_bot_secret"
+  MAIL_USER: "user@example.com"
+  POSTFIX_PASSWORD: "mail_password"
+---
+# Web Server 配置
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: manga-reader-web-config
+  namespace: manga-reader
+data:
+  IMAGE_SERVER_URL: "image-server-url"
+  IMAGE_SERVER_URL_INNER: "http://image-processor-service.manga-reader.svc.cluster.local:3001"
+  MAIL_HOST: "smtp.example.com"
 ---
 # Image Processor 配置
 apiVersion: v1
@@ -67,6 +84,7 @@ data:
   UPLOADS_DIR: "/uploads"
   BACKUP_MOUNT_DIR: "/backup"
   SHARED_SSD_CACHE_DIR: "/cache"
+  SHARED_SSD_CACHE_DURATION_IN_SECONDS: "3600"
   CACHE_MAX_AGE: "2592000"
   MAX_UPLOAD_SIZE: "1073741824"
   BACKTRACK_DURATION_IN_SECONDS: "172800"
@@ -76,6 +94,7 @@ data:
   S3_ENDPOINT: "http://localhost:9000"
   S3_BUCKET_NAME: "test"
   S3_VIRTUAL_HOSTED_STYLE: "false"
+  API_KEY: "image_processor_key"
 ---
 # PostgreSQL 初始化腳本：建立兩個獨立的資料庫與使用者
 apiVersion: v1
@@ -270,7 +289,7 @@ spec:
     spec:
       containers:
       - name: manga-reader
-        image: home.local/manga-reader:latest
+        image: manga-reader-web:latest
         ports:
         - containerPort: 3000
         resources:
@@ -280,6 +299,9 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        envFrom:
+        - configMapRef:
+            name: manga-reader-web-config
         env:
         - name: DATABASE_URL
           valueFrom:
@@ -306,6 +328,26 @@ spec:
             secretKeyRef:
               name: manga-reader-secrets
               key: DISCORD_CLIENT_SECRET
+        - name: IMAGE_SERVER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: IMAGE_SERVER_API_KEY
+        - name: BOT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: BOT_SECRET
+        - name: MAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: MAIL_USER
+        - name: POSTFIX_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: POSTFIX_PASSWORD
         - name: NODE_ENV
           value: development
         volumeMounts:
@@ -349,7 +391,7 @@ spec:
     spec:
       containers:
       - name: image-processor
-        image: image-processor:latest
+        image: manga-reader-image-processor:latest
         ports:
         - containerPort: 3001
         resources:
@@ -380,6 +422,16 @@ spec:
               key: PROCESSOR_DB_PASSWORD
         - name: POSTGRES_DB
           value: "image_processor"
+        - name: S3_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: S3_ACCESS_KEY_ID
+        - name: S3_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: manga-reader-secrets
+              key: S3_SECRET_ACCESS_KEY
         volumeMounts:
         - name: uploads-volume
           mountPath: /uploads
