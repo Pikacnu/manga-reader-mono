@@ -1,6 +1,7 @@
 import { file } from 'bun';
 import nodemailer from 'nodemailer';
 import { MailHost, MailPassword, MailUser } from './config';
+import { join } from 'path';
 
 export enum EmailType {
   SIGNUP = 'SIGNUP',
@@ -25,6 +26,8 @@ const mailer = nodemailer.createTransport({
   },
 });
 
+const currentPath = import.meta.dir;
+
 export async function sendEmail(
   to: string,
   url: string,
@@ -34,7 +37,7 @@ export async function sendEmail(
   switch (type) {
     case EmailType.SIGNUP: {
       const emailContent = await file(
-        '../email/login-verification.html',
+        join(currentPath, '../email/login-verification.html'),
       ).text();
       personalizedContent = emailContent
         .replace('{{verification_link}}', url)
@@ -43,7 +46,9 @@ export async function sendEmail(
       break;
     }
     case EmailType.RESET_PASSWORD: {
-      const emailContent = await file('../email/reset-password.html').text();
+      const emailContent = await file(
+        join(currentPath, '../email/reset-password.html'),
+      ).text();
       personalizedContent = emailContent
         .replace('{{reset_link}}', url)
         .replace('{{subject}}', subjectTypeMap[type]);
