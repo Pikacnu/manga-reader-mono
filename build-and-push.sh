@@ -8,17 +8,22 @@ IMAGE_NAME="manga-reader"
 IMAGE_TAG="latest"
 DOCKER_REGISTRY="localhost:5000"
 
-# Build Docker images with multi-architecture support
-function build_images() {
-  echo "Building Docker images with multi-architecture support..."
-  # Create a new builder that supports insecure registries if needed
-  # docker buildx create --use --driver-opt network=host --buildkitd-flags '--allow-insecure-entitlement security.insecure'
-  docker buildx create --use || true
-  docker buildx build --platform linux/arm64 -t $DOCKER_REGISTRY/$IMAGE_NAME-web:$IMAGE_TAG ./apps/web --push
-  docker buildx build --platform linux/arm64 -t $DOCKER_REGISTRY/$IMAGE_NAME-image-processor:$IMAGE_TAG ./apps/image-processer --push
+# Build and Push Docker images
+function build_and_push() {
+  echo "Building Docker images locally..."
+  
+  # Build Web
+  docker buildx build --platform linux/arm64 -t $DOCKER_REGISTRY/$IMAGE_NAME-web:$IMAGE_TAG ./apps/web --load
+  echo "Pushing Web image..."
+  docker push $DOCKER_REGISTRY/$IMAGE_NAME-web:$IMAGE_TAG
+
+  # Build Image Processor
+  docker buildx build --platform linux/arm64 -t $DOCKER_REGISTRY/$IMAGE_NAME-image-processor:$IMAGE_TAG ./apps/image-processer --load
+  echo "Pushing Image Processor image..."
+  docker push $DOCKER_REGISTRY/$IMAGE_NAME-image-processor:$IMAGE_TAG
 }
 
 # Main
-build_images
+build_and_push
 
 echo "Docker images built and pushed successfully!"
