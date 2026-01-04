@@ -8,6 +8,13 @@
       "when": 1766856439032,
       "tag": "0000_chubby_shard",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767530974464,
+      "tag": "0001_young_blue_shield",
+      "breakpoints": true
     }
   ]
 }

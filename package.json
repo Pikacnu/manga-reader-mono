@@ -5,17 +5,18 @@
     "apps/*"
   ],
   "scripts": {
-    "web:dev": "bun --filter manga-reader dev",
+    "web:dev": "bun --filter manga-reader --elide-lines 0 dev",
     "web:build": "bun --filter manga-reader build",
     "web:start": "bun --filter manga-reader start",
     "web:lint": "bun --filter manga-reader eslint",
     "web:generate": "bun --filter manga-reader generate",
     "web:migrate": "bun --filter manga-reader migrate",
+    "web:studio": "bun --filter manga-reader --elide-lines 60 studio",
     "img:start": "bun --filter image-processer start",
-    "img:dev": "bun --filter image-processer dev",
+    "img:dev": "bun --filter image-processer --elide-lines 0 dev",
     "img:generate": "bun --filter image-processer generate",
     "img:migrate": "bun --filter image-processer migrate",
-    "dev": "bun --filter \"*\" dev",
-    "db:migrate": "bun --filter \"*\" migrate"
+    "dev": "bun --filter \"*\" --elide-lines 120 dev",
+    "db:migrate": "bun --filter \"*\" --elide-lines 60 migrate"
   }
 }

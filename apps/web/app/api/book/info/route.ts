@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
   const { title, author, description, tags, page, count, bookId, q, sort } =
     paramsObj;
   const pageIndex = Number(page) || 0;
-  const bookCountPerPage = Number(count) || 10;
+  const bookCountPerPage = Number(count) || 20;
 
   // if bookId is provided, return that specific book info
   if (bookId) {

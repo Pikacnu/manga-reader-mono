@@ -261,10 +261,16 @@ const uploadCover = async (
       requestId: string;
       imageIds: string[];
     };
-    await db
+    const updateResult = await db
       .update(book)
       .set({ coverId: data.imageIds[0] })
-      .where(eq(book.idx, Number(bookId)));
+      .where(eq(book.idx, Number(bookId)))
+      .returning({ id: book.idx });
+
+    if (updateResult.length === 0) {
+      return NextResponse.json({ error: 'Book not found' }, { status: 404 });
+    }
+
     return NextResponse.json({
       message: 'Cover uploaded successfully',
       imageId: data.imageIds[0],
