@@ -85,7 +85,7 @@ const saveCheckInterval = setInterval(async () => {
       .where(
         and(
           lte(
-            ImageIdLink.lastUsedDate,
+            ImageIdLink.uploadData,
             new Date(Date.now() - BACKTRACK_DURATION_IN_SECONDS * 1000),
           ),
           eq(ImageIdLink.isSaved, 0),
@@ -165,56 +165,44 @@ const ramCacheCleanupInterval = setInterval(() => {
 }, RAM_CACHE_EXPIRY_DURATION * 1000);
 
 const sharedSSDCleanupInterval = setInterval(async () => {
+  await fileCacherInstance.checkAndCleanupSSD();
+}, SHARED_SSD_CACHE_DURATION_IN_SECONDS * 1000);
+
+const uploadsGarbageCollection = setInterval(async () => {
   try {
-    let totalSize = 0;
-    const glob = new Glob('**/*'); // Scan all files in cache dir
-    const files: { path: string; size: number }[] = [];
+    const glob = new Glob('**/*');
+    for await (const relativePath of glob.scan(UPLOADS_DIR)) {
+      const fullPath = join(UPLOADS_DIR, relativePath);
+      try {
+        const s = await stat(fullPath);
+        if (s.isDirectory()) continue;
 
-    for await (const relativePath of glob.scan(SHARED_SSD_CACHE_DIR)) {
-      const absolutePath = join(SHARED_SSD_CACHE_DIR, relativePath);
-      const s = await stat(absolutePath);
-      totalSize += s.size;
-      files.push({ path: absolutePath, size: s.size });
-    }
+        const record = await db
+          .select({ isSaved: ImageIdLink.isSaved })
+          .from(ImageIdLink)
+          .where(eq(ImageIdLink.filePath, fullPath));
 
-    const thresholdBytes = MAX_SHARED_SSD_SIZE_GB * 1024 * 1024 * 1024;
-    if (totalSize > thresholdBytes) {
-      console.log(
-        `Shared SSD cache size (${(totalSize / 1024 / 1024 / 1024).toFixed(
-          2,
-        )} GB) exceeds threshold. Cleaning up...`,
-      );
-
-      // Query DB for oldest images
-      const oldestImages = await db
-        .select({ id: ImageIdLink.id })
-        .from(ImageIdLink)
-        .orderBy(asc(ImageIdLink.lastUsedDate));
-
-      for (const img of oldestImages) {
-        if (totalSize <= thresholdBytes * 0.8) break; // Clean until 80% full
-
-        // 使用 FileCacher 統一處理刪除邏輯
-        const freedProcessed = await fileCacherInstance.deleteProcessedCache(
-          img.id,
-        );
-        const freedOriginal = await fileCacherInstance.deleteOriginalCache(
-          img.id,
-        );
-
-        totalSize -= freedProcessed + freedOriginal;
+        if (record.length === 0 || !record[0] || record[0].isSaved === 1) {
+          await unlink(fullPath);
+          console.log(
+            `GC: Deleted orphaned or already saved file: ${fullPath}`,
+          );
+        }
+      } catch (e) {
+        // File might have been deleted already
       }
     }
   } catch (err) {
-    console.error('Error during sharedSSDCleanupInterval:', err);
+    console.error('Error during uploadsGarbageCollection:', err);
   }
-}, SHARED_SSD_CACHE_DURATION_IN_SECONDS * 1000);
+}, 24 * 60 * 60 * 1000);
 
 process.on('SIGINT', async () => {
   console.log('Gracefully shutting down...');
   clearInterval(saveCheckInterval);
   clearInterval(ramCacheCleanupInterval);
   clearInterval(sharedSSDCleanupInterval);
+  clearInterval(uploadsGarbageCollection);
   server.stop();
 
   try {

@@ -1,8 +1,15 @@
 import { file, Glob } from 'bun';
-import { UPLOADS_DIR, SHARED_SSD_CACHE_DIR } from './config';
+import {
+  UPLOADS_DIR,
+  SHARED_SSD_CACHE_DIR,
+  MAX_SHARED_SSD_SIZE_GB,
+} from './config';
 import { mkdir, rmdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createHash } from 'crypto';
+import db from './db';
+import { ImageIdLink } from '../../db/schema';
+import { asc } from 'drizzle-orm';
 
 export class FileCacher {
   private static instance: FileCacher;
@@ -104,5 +111,49 @@ export class FileCacher {
       console.error(`Error deleting original cache ${originalPath}:`, e);
     }
     return 0;
+  }
+
+  /**
+   * 檢查 SSD 快取容量，若超過上限則清理
+   */
+  async checkAndCleanupSSD(): Promise<void> {
+    try {
+      let totalSize = 0;
+      const glob = new Glob('**/*');
+
+      for await (const relativePath of glob.scan(SHARED_SSD_CACHE_DIR)) {
+        const absolutePath = join(SHARED_SSD_CACHE_DIR, relativePath);
+        try {
+          const s = await stat(absolutePath);
+          totalSize += s.size;
+        } catch (e) {}
+      }
+
+      const thresholdBytes = MAX_SHARED_SSD_SIZE_GB * 1024 * 1024 * 1024;
+      if (totalSize > thresholdBytes) {
+        console.log(
+          `Shared SSD cache size (${(totalSize / 1024 / 1024 / 1024).toFixed(
+            2,
+          )} GB) exceeds threshold. Cleaning up...`,
+        );
+
+        // Query DB for oldest images
+        const oldestImages = await db
+          .select({ id: ImageIdLink.id })
+          .from(ImageIdLink)
+          .orderBy(asc(ImageIdLink.lastUsedDate));
+
+        for (const img of oldestImages) {
+          if (totalSize <= thresholdBytes * 0.8) break; // Clean until 80% full
+
+          const freedProcessed = await this.deleteProcessedCache(img.id);
+          const freedOriginal = await this.deleteOriginalCache(img.id);
+
+          totalSize -= freedProcessed + freedOriginal;
+        }
+      }
+    } catch (err) {
+      console.error('Error during SSD cleanup:', err);
+    }
   }
 }

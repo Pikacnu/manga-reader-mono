@@ -147,6 +147,11 @@ export async function GET(request: Request): Promise<Response> {
     await mkdir(dirname(cachePath), { recursive: true });
     await file(cachePath).write(processedBuffer);
 
+    // Proactive SSD cleanup check (1% chance)
+    if (Math.random() < 0.01) {
+      fileCacherInstance.checkAndCleanupSSD();
+    }
+
     // Save to L1 (RAM)
     ImageCacherInstance.set(ramCacheKey, processedBuffer);
 
