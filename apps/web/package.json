@@ -8,7 +8,8 @@
     "start": "bun run --bun next start",
     "lint": "eslint",
     "generate": "bun run drizzle-kit generate",
-    "migrate": "bun run drizzle-kit migrate"
+    "migrate": "bun run drizzle-kit migrate",
+    "studio": "bun run drizzle-kit studio"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -6,6 +6,7 @@ import {
   boolean,
   date,
   json,
+  jsonb,
   pgTable,
   unique,
   integer,
@@ -94,9 +95,9 @@ export const book = pgTable('book', {
   author: text('author').notNull(),
   coverId: text('cover_id').default(''), // image ID for cover
   description: text('description'),
-  tags: json('tags').default([]),
-  uploadedAt: date('uploaded_at').default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: date('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  tags: jsonb('tags').default([]),
+  uploadedAt: timestamp('uploaded_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP`),
   ownerId: text('owner_id')
     .notNull()
     .references(() => user.id, {

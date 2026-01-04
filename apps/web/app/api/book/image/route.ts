@@ -145,7 +145,7 @@ export async function locaFileHandler({
             .chapterNumber
         : 0;
 
-    if (isNaN(Number(chapterId))) {
+    if (!chapterId || isNaN(Number(chapterId)) || Number(chapterId) === 0) {
       newChapterId = (
         await tx
           .insert(chapter)
@@ -221,14 +221,17 @@ export async function warpFileHandler({
   bookId: string;
   chapterId: string | null;
 }) {
+  const contentType =
+    req.headers.get('Content-Type') || 'application/octet-stream';
+  const body = await req.arrayBuffer();
+
   const response = await fetch(`${imageServerURLInner}/upload`, {
     method: 'POST',
     headers: {
-      'Content-Type':
-        req.headers.get('Content-Type') || 'application/octet-stream',
+      'Content-Type': contentType,
       Authorization: `Bearer ${IMAGE_SERVER_API_KEY}`,
     },
-    body: req.body,
+    body: body,
   });
   if (!response.ok) {
     return NextResponse.json(
@@ -269,7 +272,7 @@ export async function warpFileHandler({
         ? chapters.toSorted((a, b) => b.chapterNumber - a.chapterNumber)[0]
             .chapterNumber
         : 0;
-    if (isNaN(Number(chapterId))) {
+    if (!chapterId || isNaN(Number(chapterId)) || Number(chapterId) === 0) {
       newChapterId = (
         await tx
           .insert(chapter)

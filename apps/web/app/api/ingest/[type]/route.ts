@@ -1,5 +1,5 @@
 import { db } from '@/db';
-import { book, image } from '@/db/schema';
+import { book, image, user } from '@/db/schema';
 import {
   BookInfo,
   exampleBook,
@@ -14,20 +14,41 @@ import {
 } from '@/src/utils/config';
 import { createHmac } from 'crypto';
 import { and, eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { locaFileHandler, warpFileHandler } from '../../book/image/route';
 import { mkdir, writeFile } from 'fs/promises';
 import { v7 } from 'uuid';
 
-const BOT_USER_ID = '-1000';
+const BOT_USER_ID = 'bot_user_id_001';
+
+const ensureBotUser = async () => {
+  try {
+    await db
+      .insert(user)
+      .values({
+        id: BOT_USER_ID,
+        name: 'crawler_bot',
+        email: 'bot@pikacnu.com',
+        emailVerified: true,
+      })
+      .onConflictDoUpdate({
+        target: user.id,
+        set: {
+          name: 'crawler_bot',
+          id: BOT_USER_ID,
+        },
+      });
+  } catch (error) {
+    console.error('Critical error ensuring bot user:', error);
+    throw error;
+  }
+};
 
 export const POST = async (
-  request: Request,
+  request: NextRequest,
   ctx: RouteContext<'/api/ingest/[type]'>,
 ) => {
-  if (!request.body) {
-    return new Response('No payload provided', { status: 400 });
-  }
+  await ensureBotUser();
   const type = (await ctx.params).type;
   // Verify signature
   const signatureHeader = request.headers.get('X-Signature');
@@ -37,7 +58,8 @@ export const POST = async (
   }
   const payload = Buffer.from(await request.arrayBuffer());
   const expectedSignature = createHmac('sha256', BOT_SECRET)
-    .update(payload + timestampHeader)
+    .update(payload)
+    .update(timestampHeader)
     .digest('hex');
   if (signatureHeader !== expectedSignature) {
     return new Response('Invalid signature', { status: 401 });
@@ -45,20 +67,29 @@ export const POST = async (
 
   switch (type) {
     case 'create_book':
-      return await createBook(request);
+      return await createBook(payload);
     case 'update_book':
-      return await updateBook(request);
+      return await updateBook(payload);
     case 'upload_chapter_image':
-      return await uploadChapterImage(request);
+      return await uploadChapterImage(
+        payload,
+        request.url,
+        request.headers.get('Content-Type') || 'application/octet-stream',
+      );
     case 'upload_book_cover':
-      return await uploadCover(request);
+      return await uploadCover(
+        payload,
+        request.url,
+        request.headers.get('Content-Type') || 'application/octet-stream',
+      );
     default:
       return new Response('Unsupported ingest type', { status: 400 });
   }
 };
 
-const createBook = async (request: Request) => {
-  const bookData = (await request.json()) as BookInfo;
+const createBook = async (payload: Buffer) => {
+  const bookData = JSON.parse(payload.toString()) as BookInfo;
+  console.log('Creating book with data:', bookData);
   if (!Object.keys(exampleBook).every((key) => key in bookData)) {
     return NextResponse.json(
       { error: 'Invalid manga info format' },
@@ -73,7 +104,7 @@ const createBook = async (request: Request) => {
         ownerId: BOT_USER_ID,
         author: bookData.author,
         description: bookData.description,
-        //tags: bookData.tags || [],
+        tags: bookData.tags || [],
       })
       .returning({ id: book.idx });
 
@@ -96,12 +127,13 @@ const createBook = async (request: Request) => {
   }
 };
 
-const updateBook = async (request: Request) => {
-  const { bookId, ...updateData } =
-    (await request.json()) as Partial<BookInfo> & {
-      bookId: number;
-      tags: string;
-    };
+const updateBook = async (payload: Buffer) => {
+  const { bookId, ...updateData } = JSON.parse(
+    payload.toString(),
+  ) as Partial<BookInfo> & {
+    bookId: number;
+    tags: string;
+  };
   if (!bookId || isNaN(bookId)) {
     return NextResponse.json({ error: 'Invalid book ID' }, { status: 400 });
   }
@@ -139,40 +171,67 @@ const updateBook = async (request: Request) => {
   }
 };
 
-const uploadChapterImage = async (request: Request) => {
-  if (!request.body) {
+const uploadChapterImage = async (
+  payload: Buffer,
+  url: string,
+  contentType: string,
+) => {
+  if (!payload) {
     return new Response('No file uploaded', { status: 400 });
   }
-  const searchParams = new URL(request.url).searchParams;
+  const searchParams = new URL(url).searchParams;
   const bookId = searchParams.get('bookId');
   const chapterId = searchParams.get('chapterId');
   if (!bookId) {
     return new Response('Missing bookId', { status: 400 });
   }
 
+  const req = new Request(url, {
+    method: 'POST',
+    body: new Uint8Array(payload),
+    headers: {
+      'Content-Type': contentType,
+    },
+  });
+
   if (!isWarpedImageServer) {
-    return locaFileHandler({
-      req: request,
-      bookId,
-      chapterId: chapterId || '',
-    });
+    try {
+      return locaFileHandler({
+        req,
+        bookId,
+        chapterId: chapterId || '',
+      });
+    } catch (e) {
+      console.error('Error uploading chapter image:', e);
+      return new Response('Error uploading chapter image', { status: 500 });
+    }
   } else {
-    return warpFileHandler({ req: request, bookId, chapterId });
+    try {
+      return warpFileHandler({
+        req,
+        bookId,
+        chapterId,
+      });
+    } catch (e) {
+      console.error('Error uploading chapter image to warped server:', e);
+      return new Response('Error uploading chapter image', { status: 500 });
+    }
   }
 };
 
-const uploadCover = async (request: Request) => {
-  const req = request;
-  const searchParams = new URL(request.url).searchParams;
+const uploadCover = async (
+  payload: Buffer,
+  url: string,
+  ContentType: string,
+) => {
+  const searchParams = new URL(url).searchParams;
   const bookId = searchParams.get('bookId');
 
-  if (!req.body) {
+  if (!payload) {
     return new Response('No file uploaded', { status: 400 });
   }
 
-  const ContentType =
-    req.headers.get('Content-Type') || 'application/octet-stream';
-  const fileBuffer = await req.arrayBuffer();
+  const fileBuffer = Buffer.from(payload);
 
   if (!bookId || isNaN(Number(bookId))) {
     return new Response('Invalid bookId', { status: 400 });

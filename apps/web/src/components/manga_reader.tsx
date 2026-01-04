@@ -121,7 +121,14 @@ export function MangaReader({
   // Resize handler
   useEffect(() => {
     const handleResize = () => {
-      setClientWidth(document.body.clientWidth);
+      let width = document.body.clientWidth;
+      if (width === 0) {
+        width = window.innerWidth;
+        if (width === 0) {
+          width = 1920;
+        }
+      }
+      setClientWidth(width);
     };
     window.addEventListener('resize', handleResize);
     handleResize();
@@ -140,16 +147,21 @@ export function MangaReader({
     loadedPages.current.add(page.id.toString());
 
     try {
+      let width = clientWidth === 0 ? 1920 : clientWidth;
+      switch (deviceSize) {
+        case DeviceSize.Small:
+          width = Math.min(clientWidth, 600);
+          break;
+        case DeviceSize.Medium:
+          width = Math.min(clientWidth / 2, 800);
+          break;
+        case DeviceSize.Large:
+          width = Math.min(clientWidth / 2, 1200);
+          break;
+      }
+
       const response = await fetch(
-        page.getImageUrl
-          ? page.getImageUrl(
-              deviceSize === DeviceSize.Small
-                ? Math.min(clientWidth, 600)
-                : deviceSize === DeviceSize.Medium
-                ? Math.min(clientWidth / 2, 800)
-                : Math.min(clientWidth / 2, 1200),
-            )
-          : page.imageUrl,
+        page.getImageUrl ? page.getImageUrl(width) : page.imageUrl,
       );
       const blob = await response.blob();
       if (!blob || blob.size === 0) {
