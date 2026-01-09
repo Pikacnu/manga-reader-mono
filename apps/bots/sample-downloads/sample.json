@@ -1,0 +1,111 @@
+{
+  "tags": [
+    {
+      "name": "Parodies",
+      "tags": [
+        {
+          "name": "original"
+        }
+      ]
+    },
+    {
+      "name": "Artists",
+      "tags": [
+        {
+          "name": "manga artist"
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "tags": [
+        {
+          "name": "creative circle"
+        }
+      ]
+    },
+    {
+      "name": "Languages",
+      "tags": [
+        {
+          "name": "japanese"
+        },
+        {
+          "name": "chinese"
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "tags": [
+        {
+          "name": "manga"
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "tags": [
+        {
+          "name": "romance"
+        },
+        {
+          "name": "comedy"
+        },
+        {
+          "name": "school life"
+        },
+        {
+          "name": "serialized"
+        }
+      ]
+    }
+  ],
+  "tag": {
+    "Parodies": [
+      {
+        "name": "original"
+      }
+    ],
+    "Characters": [],
+    "Tags": [
+      {
+        "name": "romance"
+      },
+      {
+        "name": "comedy"
+      },
+      {
+        "name": "school life"
+      },
+      {
+        "name": "serialized"
+      }
+    ],
+    "Artists": [
+      {
+        "name": "manga artist"
+      }
+    ],
+    "Groups": [
+      {
+        "name": "creative circle"
+      }
+    ],
+    "Languages": [
+      {
+        "name": "japanese"
+      }
+    ],
+    "Categories": [
+      {
+        "name": "manga"
+      }
+    ],
+    "Pages": [],
+    "Uploaded": []
+  },
+  "pageCount": 180,
+  "title": "A Very Normal Manga Title Vol.1",
+  "fileExtension": "webp"
+}
