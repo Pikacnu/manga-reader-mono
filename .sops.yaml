@@ -1,0 +1,5 @@
+creation_rules:
+  - path_regex: secrets\.yaml$
+    # Replace with your GPG fingerprint or Age public key
+    # pgp: "YOUR_GPG_FINGERPRINT"
+    # age: "YOUR_AGE_PUBLIC_KEY"

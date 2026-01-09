@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-nfs-config
+data:
+  NFS_SERVER: {{ .Values.nfs.server | quote }}
+  NFS_PATH_PGDATA: {{ .Values.nfs.paths.pgdata | quote }}
+  NFS_PATH_CACHE: {{ .Values.nfs.paths.cache | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-domain-config
+data:
+  WEB_DOMAIN: {{ .Values.domain.web | quote }}
+  IMG_DOMAIN: {{ .Values.domain.img | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-web-config
+data:
+  IMAGE_SERVER_URL_INNER: "http://{{ include "manga-reader.fullname" . }}-image-processor-service:3001"
+  MAIL_HOST: "nfs-server-service"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-image-processor-config
+data:
+  PORT: "3001"
+  HOST: "0.0.0.0"
+  UPLOADS_DIR: "/uploads"
+  BACKUP_MOUNT_DIR: "/backup"
+  SHARED_SSD_CACHE_DIR: "/cache"
+  SHARED_SSD_CACHE_DURATION_IN_SECONDS: "3600"
+  CACHE_MAX_AGE: "2592000"
+  MAX_UPLOAD_SIZE: "1073741824"
+  BACKTRACK_DURATION_IN_SECONDS: "172800"
+  RAM_CACHE_EXPIRY_DURATION: "3600"
+  MAX_RAM_CACHE_SIZE: "20"
+  MAX_SHARED_SSD_SIZE_GB: "10"
+  S3_ENDPOINT: {{ .Values.s3.endpoint | quote }}
+  S3_BUCKET_NAME: {{ .Values.s3.bucketName | quote }}
+  S3_VIRTUAL_HOSTED_STYLE: "false"
+  API_KEY: {{ .Values.secrets.imageServerApiKey | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-postgres-init-script
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+        CREATE USER ${WEB_DB_USER} WITH PASSWORD '${WEB_DB_PASSWORD}';
+        CREATE DATABASE {{ .Values.database.web.db }};
+        GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.web.db }} TO ${WEB_DB_USER};
+        
+        CREATE USER ${PROCESSOR_DB_USER} WITH PASSWORD '${PROCESSOR_DB_PASSWORD}';
+        CREATE DATABASE {{ .Values.database.processor.db }};
+        GRANT ALL PRIVILEGES ON DATABASE {{ .Values.database.processor.db }} TO ${PROCESSOR_DB_USER};
+    EOSQL
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "{{ .Values.database.web.db }}" -c "GRANT ALL ON SCHEMA public TO ${WEB_DB_USER};"
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "{{ .Values.database.processor.db }}" -c "GRANT ALL ON SCHEMA public TO ${PROCESSOR_DB_USER};"

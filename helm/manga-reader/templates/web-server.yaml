@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-webserver
+spec:
+  replicas: {{ .Values.replicaCount.web }}
+  selector:
+    matchLabels:
+      app: webserver
+  template:
+    metadata:
+      labels:
+        app: webserver
+    spec:      
+      securityContext:
+        fsGroup: 1000      
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.28
+        command: ['sh', '-c', 'until nc -z {{ include "manga-reader.fullname" . }}-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+      containers:
+      - name: manga-reader
+        image: "{{ .Values.image.web.repository }}:{{ .Values.image.web.tag }}"
+        imagePullPolicy: {{ .Values.image.web.pullPolicy }}
+        ports:
+        - containerPort: 3000
+        resources:
+          {{- toYaml .Values.resources.web | nindent 10 }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "manga-reader.fullname" . }}-web-config
+        env:
+        - name: WEB_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-domain-config
+              key: WEB_DOMAIN
+        - name: IMG_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-domain-config
+              key: IMG_DOMAIN
+        - name: IMAGE_SERVER_URL
+          value: "https://$(IMG_DOMAIN)"
+        - name: BETTER_AUTH_URL
+          value: "https://$(WEB_DOMAIN)"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: WEB_DATABASE_URL
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: BETTER_AUTH_SECRET
+        - name: DISCORD_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: DISCORD_CLIENT_ID
+        - name: DISCORD_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: DISCORD_CLIENT_SECRET
+        - name: IMAGE_SERVER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: IMAGE_SERVER_API_KEY
+        - name: BOT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: BOT_SECRET
+        - name: MAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: MAIL_USER
+        - name: POSTFIX_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: POSTFIX_PASSWORD
+        - name: NODE_ENV
+          value: production
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /app/uploads
+        - name: cache-volume
+          mountPath: /cache
+      volumes:
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: {{ include "manga-reader.fullname" . }}-uploads-pvc
+      - name: cache-volume
+        persistentVolumeClaim:
+          claimName: {{ include "manga-reader.fullname" . }}-cache-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-web-service
+spec:
+  selector:
+    app: webserver
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP

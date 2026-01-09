@@ -1,0 +1,78 @@
+replicaCount:
+  web: 1
+  processor: 2
+
+image:
+  web:
+    repository: home.local/manga-reader-web
+    tag: latest
+    pullPolicy: Always
+  processor:
+    repository: home.local/manga-reader-image-processor
+    tag: latest
+    pullPolicy: Always
+  postgres:
+    repository: postgres
+    tag: "15"
+
+domain:
+  web: ""
+  img: ""
+
+nfs:
+  enabled: true
+  server: ""
+  paths:
+    pgdata: ""
+    cache: ""
+    uploads: ""
+
+database:
+  postgresUser: ""
+  postgresPassword: ""
+  web:
+    user: ""
+    password: ""
+    db: manga_db
+  processor:
+    user: ""
+    password: ""
+    db: image_processor
+
+secrets:
+  betterAuthSecret: ""
+  discordClientId: ""
+  discordClientSecret: ""
+  imageServerApiKey: ""
+  botSecret: ""
+  mailUser: ""
+  postfixPassword: ""
+
+s3:
+  endpoint: "http://nfs-server-service:18333"
+  bucketName: "image-save"
+  accessKeyId: ""
+  secretAccessKey: ""
+
+resources:
+  web:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  processor:
+    requests:
+      cpu: 125m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  postgres:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi

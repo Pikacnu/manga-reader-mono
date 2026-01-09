@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-image-processor
+spec:
+  replicas: {{ .Values.replicaCount.processor }}
+  selector:
+    matchLabels:
+      app: image-processor
+  template:
+    metadata:
+      labels:
+        app: image-processor
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.28
+        command: ['sh', '-c', 'until nc -z {{ include "manga-reader.fullname" . }}-postgres 5432; do echo waiting for postgres; sleep 2; done;']
+      containers:
+      - name: image-processor
+        image: "{{ .Values.image.processor.repository }}:{{ .Values.image.processor.tag }}"
+        imagePullPolicy: {{ .Values.image.processor.pullPolicy }}
+        ports:
+        - containerPort: 3001
+        resources:
+          {{- toYaml .Values.resources.processor | nindent 10 }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "manga-reader.fullname" . }}-image-processor-config
+        env:
+        - name: DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: PROCESSOR_DB_URL
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: PROCESSOR_DB_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: PROCESSOR_DB_PASSWORD
+        - name: POSTGRES_DB
+          value: {{ .Values.database.processor.db | quote }}
+        - name: S3_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: S3_ACCESS_KEY_ID
+        - name: S3_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: S3_SECRET_ACCESS_KEY
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /uploads
+        - name: cache-volume
+          mountPath: /cache
+      volumes:
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: {{ include "manga-reader.fullname" . }}-uploads-pvc
+      - name: cache-volume
+        persistentVolumeClaim:
+          claimName: {{ include "manga-reader.fullname" . }}-cache-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-image-processor-service
+spec:
+  selector:
+    app: image-processor
+  ports:
+  - protocol: TCP
+    port: 3001
+    targetPort: 3001
+  type: LoadBalancer

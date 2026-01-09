@@ -1,0 +1,49 @@
+{{- if .Values.nfs.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-pgdata-pv
+spec:
+  capacity:
+    storage: 40Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  nfs:
+    server: {{ .Values.nfs.server }}
+    path: {{ .Values.nfs.paths.pgdata }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-uploads-pv
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  nfs:
+    server: {{ .Values.nfs.server }}
+    path: {{ .Values.nfs.paths.uploads }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-cache-pv
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  nfs:
+    server: {{ .Values.nfs.server }}
+    path: {{ .Values.nfs.paths.cache }}
+{{- end }}

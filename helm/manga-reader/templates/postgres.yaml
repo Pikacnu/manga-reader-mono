@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+      containers:
+      - name: postgres
+        image: "{{ .Values.image.postgres.repository }}:{{ .Values.image.postgres.tag }}"
+        ports:
+        - containerPort: 5432
+        resources:
+          {{- toYaml .Values.resources.postgres | nindent 10 }}
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: postgres
+        - name: WEB_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: WEB_DB_USER
+        - name: WEB_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: WEB_DB_PASSWORD
+        - name: PROCESSOR_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: PROCESSOR_DB_USER
+        - name: PROCESSOR_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "manga-reader.fullname" . }}-secrets
+              key: PROCESSOR_DB_PASSWORD
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql/data
+          subPath: pgdata
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: pgdata
+        persistentVolumeClaim:
+          claimName: {{ include "manga-reader.fullname" . }}-pgdata-pvc
+      - name: init-script
+        configMap:
+          name: {{ include "manga-reader.fullname" . }}-postgres-init-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "manga-reader.fullname" . }}-postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432

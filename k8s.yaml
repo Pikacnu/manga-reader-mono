@@ -3,28 +3,25 @@ kind: Namespace
 metadata:
   name: manga-reader
 ---
-# NFS 統一管理配置 (Source of Truth)
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: manga-reader-nfs-config
   namespace: manga-reader
 data:
-  NFS_SERVER: "nfs-server-url"
-  NFS_PATH_PGDATA: "/exported/path/postgres-data"
-  NFS_PATH_CACHE: "/exported/path/cache"
+  NFS_SERVER: "REPLACE_ME"
+  NFS_PATH_PGDATA: "REPLACE_ME"
+  NFS_PATH_CACHE: "REPLACE_ME"
 ---
-# 網域配置
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: manga-reader-domain-config
   namespace: manga-reader
 data:
-  WEB_DOMAIN: "manga.local"
-  IMG_DOMAIN: "img.manga.local"
+  WEB_DOMAIN: "REPLACE_ME"
+  IMG_DOMAIN: "REPLACE_ME"
 ---
-# NFS 伺服器代理 (透過 Service 統一管理位址)
 apiVersion: v1
 kind: Service
 metadata:
@@ -32,46 +29,38 @@ metadata:
   namespace: manga-reader
 spec:
   type: ExternalName
-  externalName: nfs-server-url
+  externalName: REPLACE_ME
 ---
-# 整合後的 Secrets
 apiVersion: v1
 kind: Secret
 metadata:
   name: manga-reader-secrets
   namespace: manga-reader
 stringData:
-  # PostgreSQL 超級使用者 (用於初始化)
-  POSTGRES_USER: "postgres"
-  POSTGRES_PASSWORD: "password"
-  
-  # Web 應用程式資料庫資訊
-  WEB_DB_USER: "manga_user"
-  WEB_DB_PASSWORD: "manga_password"
-  WEB_DATABASE_URL: "postgres://manga_user:manga_password@manga-reader-postgres:5432/manga_db"
-  
-  # Image Processor 資料庫資訊
-  PROCESSOR_DB_USER: "processor_user"
-  PROCESSOR_DB_PASSWORD: "processor_password"
-  PROCESSOR_DB_URL: "postgresql://processor_user:processor_password@manga-reader-postgres:5432/image_processor"
-  
-  # Better Auth & Discord
-  BETTER_AUTH_SECRET: "BETTER_AUTH_SECRET"
-  BETTER_AUTH_URL: "BETTER_AUTH_URL"
-  DISCORD_CLIENT_ID: "DISCORD_CLIENT_ID"
-  DISCORD_CLIENT_SECRET: "DISCORD_CLIENT_SECRET"
-  
-  # S3 配置 (Image Processor 使用)
+  POSTGRES_USER: "REPLACE_ME"
+  POSTGRES_PASSWORD: "REPLACE_ME"
+
+  WEB_DB_USER: "REPLACE_ME"
+  WEB_DB_PASSWORD: "REPLACE_ME"
+  WEB_DATABASE_URL: "postgres://$(WEB_DB_USER):$(WEB_DB_PASSWORD)@manga-reader-postgres:5432/manga_db"
+
+  PROCESSOR_DB_USER: "REPLACE_ME"
+  PROCESSOR_DB_PASSWORD: "REPLACE_ME"
+  PROCESSOR_DB_URL: "postgresql://$(PROCESSOR_DB_USER):$(PROCESSOR_DB_PASSWORD)@manga-reader-postgres:5432/image_processor"
+
+  BETTER_AUTH_SECRET: "REPLACE_ME"
+  BETTER_AUTH_URL: "REPLACE_ME"
+  DISCORD_CLIENT_ID: "REPLACE_ME"
+  DISCORD_CLIENT_SECRET: "REPLACE_ME"
+
   S3_ACCESS_KEY_ID: "any"
   S3_SECRET_ACCESS_KEY: "any"
 
-  # API Keys & Secrets
-  IMAGE_SERVER_API_KEY: "image_processor_key"
-  BOT_SECRET: "default_bot_secret"
-  MAIL_USER: "user@example.com"
-  POSTFIX_PASSWORD: "mail_password"
+  IMAGE_SERVER_API_KEY: "REPLACE_ME"
+  BOT_SECRET: "REPLACE_ME"
+  MAIL_USER: "REPLACE_ME"
+  POSTFIX_PASSWORD: "REPLACE_ME"
 ---
-# Web Server 配置
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -79,9 +68,8 @@ metadata:
   namespace: manga-reader
 data:
   IMAGE_SERVER_URL_INNER: "http://image-processor-service.manga-reader.svc.cluster.local:3001"
-  MAIL_HOST: "smtp.example.com"
+  MAIL_HOST: "nfs-server-service"
 ---
-# Image Processor 配置
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -98,14 +86,13 @@ data:
   MAX_UPLOAD_SIZE: "1073741824"
   BACKTRACK_DURATION_IN_SECONDS: "172800"
   RAM_CACHE_EXPIRY_DURATION: "3600"
-  MAX_RAM_CACHE_SIZE: "100"
+  MAX_RAM_CACHE_SIZE: "20"
   MAX_SHARED_SSD_SIZE_GB: "10"
-  S3_ENDPOINT: "http://localhost:9000"
-  S3_BUCKET_NAME: "test"
+  S3_ENDPOINT: "http://nfs-server-service:18333"
+  S3_BUCKET_NAME: "image-save"
   S3_VIRTUAL_HOSTED_STYLE: "false"
-  API_KEY: "image_processor_key"
+  API_KEY: "REPLACE_ME"
 ---
-# PostgreSQL 初始化腳本：建立兩個獨立的資料庫與使用者
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -124,76 +111,83 @@ data:
         CREATE DATABASE image_processor;
         GRANT ALL PRIVILEGES ON DATABASE image_processor TO ${PROCESSOR_DB_USER};
     EOSQL
----
-# 儲存資源 (PostgreSQL 使用 NFS)
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: pgdata-pv
-spec:
-  capacity:
-    storage: 10Gi
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: default
-  nfs:
-    # 引用自 nfs-server-service.manga-reader.svc.cluster.local
-    server: nfs-server.example.com 
-    path: /exported/path/postgres-data # 參考 manga-reader-nfs-config: NFS_PATH_PGDATA
-#---
-# Samba (SMB) 設定參考 (目前註解)
-# apiVersion: v1
-# kind: PersistentVolume
-# metadata:
-#   name: uploads-smb-pv
-#   namespace: manga-reader
-# spec:
-#   capacity:
-#     storage: 20Gi
-#   accessModes:
-#     - ReadWriteMany
-#   persistentVolumeReclaimPolicy: Retain
-#   storageClassName: ""
-#   csi:
-#     driver: smb.csi.k8s.io
-#     readOnly: false
-#     volumeHandle: unique-volume-id-uploads
-#     volumeAttributes:
-#       source: "//<samba-server>/uploads"
-#     nodeStageSecretRef:
-#       name: smb-secret
-#       namespace: manga-reader
-# ---
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: uploads-cache-pvc
-#   namespace: manga-reader
-# spec:
-#   accessModes:
-#   - ReadWriteMany
-#   resources:
-#     requests:
-#       storage: 20Gi
-#   volumeName: uploads-smb-pv
-#   storageClassName: ""
+
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "manga_db" -c "GRANT ALL ON SCHEMA public TO ${WEB_DB_USER};"
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "image_processor" -c "GRANT ALL ON SCHEMA public TO ${PROCESSOR_DB_USER};"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pgdata-pvc
+  name: manga-pgdata-pvc
   namespace: manga-reader
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
-  storageClassName: default
+      storage: 40Gi
+  storageClassName: manual
 ---
-# PostgreSQL 部署
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: manga-uploads-pv
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  nfs:
+    server: 192.168.0.101
+    path: /mnt/ssd/share/image-server/uploads
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: manga-uploads-pvc
+  namespace: manga-reader
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: manual
+  volumeName: manga-uploads-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: manga-cache-pv
+spec:
+  capacity:
+    storage: 20Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual
+  nfs:
+    server: 192.168.0.101
+    path: /mnt/ssd/share/image-server/cache
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: manga-cache-pvc
+  namespace: manga-reader
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: manual
+  volumeName: manga-cache-pv
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -209,63 +203,69 @@ spec:
       labels:
         app: postgres
     spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
       containers:
-      - name: postgres
-        image: postgres:15
-        ports:
-        - containerPort: 5432
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1"
-        env:
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
-          value: postgres
-        - name: WEB_DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: WEB_DB_USER
-        - name: WEB_DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: WEB_DB_PASSWORD
-        - name: PROCESSOR_DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: PROCESSOR_DB_USER
-        - name: PROCESSOR_DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: PROCESSOR_DB_PASSWORD
-        volumeMounts:
-        - name: pgdata
-          mountPath: /var/lib/postgresql/data
-        - name: init-script
-          mountPath: /docker-entrypoint-initdb.d
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: postgres
+            - name: WEB_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: WEB_DB_USER
+            - name: WEB_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: WEB_DB_PASSWORD
+            - name: PROCESSOR_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: PROCESSOR_DB_USER
+            - name: PROCESSOR_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: PROCESSOR_DB_PASSWORD
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
       volumes:
-      - name: pgdata
-        persistentVolumeClaim:
-          claimName: pgdata-pvc
-      - name: init-script
-        configMap:
-          name: postgres-init-script
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: manga-pgdata-pvc
+        - name: init-script
+          configMap:
+            name: postgres-init-script
 ---
 apiVersion: v1
 kind: Service
@@ -276,11 +276,10 @@ spec:
   selector:
     app: postgres
   ports:
-  - protocol: TCP
-    port: 5432
-    targetPort: 5432
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
 ---
-# Web Server 部署
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -296,85 +295,101 @@ spec:
       labels:
         app: webserver
     spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.28
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z manga-reader-postgres 5432; do echo waiting for postgres; sleep 2; done;",
+            ]
       containers:
-      - name: manga-reader
-        image: manga-reader-web:latest
-        ports:
-        - containerPort: 3000
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        envFrom:
-        - configMapRef:
-            name: manga-reader-web-config
-        env:
-        - name: WEB_DOMAIN
-          valueFrom:
-            configMapKeyRef:
-              name: manga-reader-domain-config
-              key: WEB_DOMAIN
-        - name: IMG_DOMAIN
-          valueFrom:
-            configMapKeyRef:
-              name: manga-reader-domain-config
-              key: IMG_DOMAIN
-        - name: IMAGE_SERVER_URL
-          value: "http://$(IMG_DOMAIN)"
-        - name: BETTER_AUTH_URL
-          value: "http://$(WEB_DOMAIN)"
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: WEB_DATABASE_URL
-        - name: BETTER_AUTH_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: BETTER_AUTH_SECRET
-        - name: DISCORD_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: DISCORD_CLIENT_ID
-        - name: DISCORD_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: DISCORD_CLIENT_SECRET
-        - name: IMAGE_SERVER_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: IMAGE_SERVER_API_KEY
-        - name: BOT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: BOT_SECRET
-        - name: MAIL_USER
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: MAIL_USER
-        - name: POSTFIX_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: POSTFIX_PASSWORD
-        - name: NODE_ENV
-          value: development
-        volumeMounts:
-        # 選配掛載：預設使用 emptyDir (Pod 內暫存)，若需持久化可改回 PVC
-        - name: uploads-volume
-          mountPath: /app/uploads
+        - name: manga-reader
+          image: home.local/manga-reader-web:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          envFrom:
+            - configMapRef:
+                name: manga-reader-web-config
+          env:
+            - name: WEB_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: manga-reader-domain-config
+                  key: WEB_DOMAIN
+            - name: IMG_DOMAIN
+              valueFrom:
+                configMapKeyRef:
+                  name: manga-reader-domain-config
+                  key: IMG_DOMAIN
+            - name: IMAGE_SERVER_URL
+              value: "https://$(IMG_DOMAIN)"
+            - name: BETTER_AUTH_URL
+              value: "https://$(WEB_DOMAIN)"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: WEB_DATABASE_URL
+            - name: BETTER_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: BETTER_AUTH_SECRET
+            - name: DISCORD_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: DISCORD_CLIENT_ID
+            - name: DISCORD_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: DISCORD_CLIENT_SECRET
+            - name: IMAGE_SERVER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: IMAGE_SERVER_API_KEY
+            - name: BOT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: BOT_SECRET
+            - name: MAIL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: MAIL_USER
+            - name: POSTFIX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: POSTFIX_PASSWORD
+            - name: NODE_ENV
+              value: production
+          volumeMounts:
+            - name: uploads-volume
+              mountPath: /app/uploads
+            - name: cache-volume
+              mountPath: /cache
       volumes:
-      - name: uploads-volume
-        emptyDir: {}
+        - name: uploads-volume
+          persistentVolumeClaim:
+            claimName: manga-uploads-pvc
+        - name: cache-volume
+          persistentVolumeClaim:
+            claimName: manga-cache-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -385,13 +400,11 @@ spec:
   selector:
     app: webserver
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 3000
-    nodePort: 30080
-  type: NodePort
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP
 ---
-# Image Processor 部署
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -407,62 +420,72 @@ spec:
       labels:
         app: image-processor
     spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.28
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z manga-reader-postgres 5432; do echo waiting for postgres; sleep 2; done;",
+            ]
       containers:
-      - name: image-processor
-        image: manga-reader-image-processor:latest
-        ports:
-        - containerPort: 3001
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "125m"
-          limits:
-            memory: "256Mi"
-            cpu: "250m"
-        envFrom:
-        - configMapRef:
-            name: image-processor-config
-        env:
-        - name: DB_URL
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: PROCESSOR_DB_URL
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: PROCESSOR_DB_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: PROCESSOR_DB_PASSWORD
-        - name: POSTGRES_DB
-          value: "image_processor"
-        - name: S3_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: S3_ACCESS_KEY_ID
-        - name: S3_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: manga-reader-secrets
-              key: S3_SECRET_ACCESS_KEY
-        volumeMounts:
-        - name: uploads-volume
-          mountPath: /uploads
-        - name: cache-volume
-          mountPath: /cache
+        - name: image-processor
+          image: home.local/manga-reader-image-processor:latest
+          ports:
+            - containerPort: 3001
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "125m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          envFrom:
+            - configMapRef:
+                name: image-processor-config
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: PROCESSOR_DB_URL
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: PROCESSOR_DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: PROCESSOR_DB_PASSWORD
+            - name: POSTGRES_DB
+              value: "image_processor"
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: S3_ACCESS_KEY_ID
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: manga-reader-secrets
+                  key: S3_SECRET_ACCESS_KEY
+          volumeMounts:
+            - name: uploads-volume
+              mountPath: /uploads
+            - name: cache-volume
+              mountPath: /cache
       volumes:
-      - name: uploads-volume
-        emptyDir: {}
-      - name: cache-volume
-        nfs:
-          # 引用自 nfs-server-service.manga-reader.svc.cluster.local
-          server: nfs-server.example.com
-          path: /exported/path/cache # 參考 manga-reader-nfs-config: NFS_PATH_CACHE
+        - name: uploads-volume
+          persistentVolumeClaim:
+            claimName: manga-uploads-pvc
+        - name: cache-volume
+          persistentVolumeClaim:
+            claimName: manga-cache-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -473,46 +496,43 @@ spec:
   selector:
     app: image-processor
   ports:
-  - protocol: TCP
-    port: 3001
-    targetPort: 3001
+    - protocol: TCP
+      port: 3001
+      targetPort: 3001
   type: LoadBalancer
 ---
-# Ingress 配置
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: manga-reader-ingress
   namespace: manga-reader
   annotations:
-    # Traefik 相關註解
     traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: manga-reader-limit@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: manga-reader-manga-reader-limit@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
-  - host: manga.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: manga-reader-web-service
-            port:
-              number: 80
-  - host: img.manga.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: image-processor-service
-            port:
-              number: 3001
+    - host: pazik.win
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: manga-reader-web-service
+                port:
+                  number: 80
+    - host: image.pazik.win
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: image-processor-service
+                port:
+                  number: 3001
 ---
-# Traefik Middleware - 限制上傳大小 (1GB)
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -520,5 +540,4 @@ metadata:
   namespace: manga-reader
 spec:
   buffering:
-    maxRequestBodyBytes: 1073741824 # 1GB
-
+    maxRequestBodyBytes: 1073741824

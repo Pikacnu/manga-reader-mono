@@ -7,6 +7,7 @@ Manga Reader Mono is a monorepo project designed to manage a web-based manga rea
 ```
 .
 ├── apps/
+│   ├── bots/               # Any bot services(use to automatic book creation)
 │   ├── web/                # Next.js-based web application
 │   └── image-processer/    # Image processing service
 ├── k8s.yaml                # Kubernetes deployment configuration
@@ -24,9 +25,10 @@ Manga Reader Mono is a monorepo project designed to manage a web-based manga rea
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone <your-repository-url>
    cd manga-reader-mono
    ```
+   *(Note: Remember to update the repository URL above when you move the project.)*
 
 2. Install dependencies:
    ```bash
@@ -49,15 +51,36 @@ bash build-and-push.sh
 
 ## Deployment
 
-1. Apply the Kubernetes configuration:
+### 1. Secrets Management (SOPS)
+
+Sensitive data is moved to [secrets.yaml](secrets.yaml) and should be encrypted using [Mozilla SOPS](https://github.com/getsops/sops).
+
+**How to use SOPS:**
+1. **Initialize a key**: Use GPG or [Age](https://github.com/FiloSottile/age). 
+   - Age example: `age-keygen -o key.txt`
+2. **Encrypt**: 
    ```bash
-   kubectl apply -f k8s.yaml
+   sops --encrypt --age $(cat key.txt | grep -oP "public key: \K.*") --inplace secrets.yaml
+   ```
+3. **Decrypt/Edit**:
+   ```bash
+   sops secrets.yaml
    ```
 
-2. Verify the deployment:
-   ```bash
-   kubectl get pods -n manga-reader
-   ```
+### 2. Helm Deployment
+
+The [helm/manga-reader](helm/manga-reader) directory contains the templates for the entire stack.
+
+To deploy using the separate secrets file:
+```bash
+# Ensure you have helm installed
+# You may need to decrypt secrets.yaml first or use helm-secrets plugin
+helm upgrade --install manga-reader ./helm/manga-reader -f ./helm/manga-reader/values.yaml -f secrets.yaml -n manga-reader --create-namespace
+```
+
+### 3. Classic Deployment (Monolithic)
+
+The [k8s.yaml](k8s.yaml) is provided as a static reference. However, it is recommended to use the Helm chart for better configuration management.
 
 ## Services
 
