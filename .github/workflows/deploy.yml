@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu
+    runs-on: ulatest
     steps:
       - uses: actions/checkout@v4
 
