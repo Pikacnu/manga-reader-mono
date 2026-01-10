@@ -11,83 +11,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set Gitea Registry Env
-        run: |
-          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
-          echo "REGISTRY_SERVER=$GITEA_HOST" >> $GITHUB_ENV
-          echo "IMAGE_PATH=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
-          if [[ "${{ github.server_url }}" == http://* ]]; then
-            echo "INSECURE=--plain-http" >> $GITHUB_ENV
-            echo "IS_HTTP=true" >> $GITHUB_ENV
-          else
-            echo "INSECURE=" >> $GITHUB_ENV
-            echo "IS_HTTP=false" >> $GITHUB_ENV
-          fi
-
-      - name: Allow insecure registry (HTTP)
-        if: env.IS_HTTP == 'true'
-        run: |
-          # 讓 Docker 允許連線到非 HTTPS 的 Registry
-          echo "{\"insecure-registries\": [\"${{ env.REGISTRY_SERVER }}\"]}" | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Gitea Registry
+      - name: Login to Local/Private Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY_SERVER }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build Web Image
         uses: docker/build-push-action@v5
         with:
           context: ./apps/web
           push: true
-          tags: ${{ env.IMAGE_PATH }}/manga-reader-web:latest
+          tags: ${{ secrets.REGISTRY_URL }}/manga-reader-web:latest
 
   build-image-processor:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set Gitea Registry Env
-        run: |
-          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
-          echo "REGISTRY_SERVER=$GITEA_HOST" >> $GITHUB_ENV
-          echo "IMAGE_PATH=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
-          if [[ "${{ github.server_url }}" == http://* ]]; then
-            echo "INSECURE=--plain-http" >> $GITHUB_ENV
-            echo "IS_HTTP=true" >> $GITHUB_ENV
-          else
-            echo "INSECURE=" >> $GITHUB_ENV
-            echo "IS_HTTP=false" >> $GITHUB_ENV
-          fi
-
-      - name: Allow insecure registry (HTTP)
-        if: env.IS_HTTP == 'true'
-        run: |
-          echo "{\"insecure-registries\": [\"${{ env.REGISTRY_SERVER }}\"]}" | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Gitea Registry
+      - name: Login to Local/Private Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY_SERVER }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build Image Processor
         uses: docker/build-push-action@v5
         with:
           context: ./apps/image-processer
           push: true
-          tags: ${{ env.IMAGE_PATH }}/manga-reader-image-processor:latest
+          tags: ${{ secrets.REGISTRY_URL }}/manga-reader-image-processor:latest
 
   publish-helm:
     runs-on: ubuntu-latest
@@ -95,29 +56,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set Gitea Registry Env
-        run: |
-          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
-          echo "REGISTRY_SERVER=$GITEA_HOST" >> $GITHUB_ENV
-          echo "IMAGE_PATH=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
-          if [[ "${{ github.server_url }}" == http://* ]]; then
-            echo "INSECURE=--plain-http" >> $GITHUB_ENV
-            echo "IS_HTTP=true" >> $GITHUB_ENV
-          else
-            echo "INSECURE=" >> $GITHUB_ENV
-            echo "IS_HTTP=false" >> $GITHUB_ENV
-          fi
-
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Gitea Helm Registry Login
+      - name: Helm Registry Login
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
         run: |
-          # Helm 登入在 HTTP 下可能需要額外參數，但通常 registry login 會根據網址判斷
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "$REGISTRY_SERVER" --username "${{ github.actor }}" --password-stdin $INSECURE
+          echo "$REGISTRY_PASSWORD" | helm registry login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
 
-      - name: Build and Push Helm Chart to Gitea
+      - name: Build and Push Helm Chart
+        env:
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
         run: |
           helm package ./helm/manga-reader
-          # 使用 $INSECURE 處理 HTTP (--plain-http)
-          helm push manga-reader-*.tgz "oci://$IMAGE_PATH" $INSECURE
+          helm push manga-reader-*.tgz oci://"$REGISTRY_URL"/manga-reader-charts
