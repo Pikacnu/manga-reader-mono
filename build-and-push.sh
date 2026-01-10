@@ -21,9 +21,15 @@ function build_and_push() {
   docker buildx build --platform linux/arm64 -t $DOCKER_REGISTRY/$IMAGE_NAME-image-processor:$IMAGE_TAG ./apps/image-processer --load
   echo "Pushing Image Processor image..."
   docker push $DOCKER_REGISTRY/$IMAGE_NAME-image-processor:$IMAGE_TAG
+
+  # Build and Push Helm Chart
+  echo "Building and Pushing Helm Chart..."
+  helm package ./helm/manga-reader
+  helm push $IMAGE_NAME-*.tgz oci://$DOCKER_REGISTRY/manga-reader-charts
+  rm $IMAGE_NAME-*.tgz
 }
 
 # Main
 build_and_push
 
-echo "Docker images built and pushed successfully!"
+echo "Docker images built and pushed successfully!" 
