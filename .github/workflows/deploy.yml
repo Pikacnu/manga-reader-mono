@@ -16,12 +16,12 @@ jobs:
 
       - name: Login to Local/Private Registry
         # 假設使用者有設定秘密 (Secrets)
-        #uses: docker/login-action@v3
-        #with:
-        #  registry: ${{ secrets.REGISTRY_URL }}
-        #   username: ${{ secrets.REGISTRY_USERNAME }}
-        #   password: ${{ secrets.REGISTRY_PASSWORD }}
-        run: echo "Skip login for demo"
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+        #run: echo "Skip login for demo"
 
       - name: Build Web Image
         uses: docker/build-push-action@v5
