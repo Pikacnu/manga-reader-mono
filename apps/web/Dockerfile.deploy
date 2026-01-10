@@ -1,0 +1,17 @@
+# Dockerfile.deploy
+FROM oven/bun:latest
+
+WORKDIR /app
+
+# Only copy the built standalone artifacts and static files
+# These files should be prepared on the host (system where docker build runs) beforehand
+COPY .next/standalone ./
+COPY .next/static ./apps/web/.next/static
+COPY public ./apps/web/public
+
+ENV NODE_ENV=production
+
+EXPOSE 3000
+
+# Entry point for Next.js standalone mode
+ENTRYPOINT ["bun", "apps/web/server.js"]

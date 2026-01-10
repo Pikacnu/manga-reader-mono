@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+# /.next/  <-- Commented out to allow CI pre-built artifacts
 /out/
 
 # production
@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-.next
+# .next <-- Removed to allow pre-built standalone artifacts
 
 # env files (can opt-in for committing if needed)
 .env*
