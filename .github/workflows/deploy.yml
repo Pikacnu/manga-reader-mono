@@ -7,11 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ulatest
-    container:
-      image: catthehacker/ubuntu:act-latest
-      options: "--network gitea_gitea-net"
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
