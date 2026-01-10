@@ -11,44 +11,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Gitea Registry Env
+        run: |
+          # 自動從 server_url 萃取主機名 (如 gitea.com) 並組合為 Registry URL
+          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
+          echo "REGISTRY_URL=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Local/Private Registry
+      - name: Login to Gitea Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: ${{ env.REGISTRY_URL }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Web Image
         uses: docker/build-push-action@v5
         with:
           context: ./apps/web
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/manga-reader-web:latest
+          tags: ${{ env.REGISTRY_URL }}/manga-reader-web:latest
 
   build-image-processor:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Gitea Registry Env
+        run: |
+          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
+          echo "REGISTRY_URL=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Local/Private Registry
+      - name: Login to Gitea Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: ${{ env.REGISTRY_URL }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Image Processor
         uses: docker/build-push-action@v5
         with:
           context: ./apps/image-processer
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/manga-reader-image-processor:latest
+          tags: ${{ env.REGISTRY_URL }}/manga-reader-image-processor:latest
 
   publish-helm:
     runs-on: ubuntu-latest
@@ -56,20 +67,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Gitea Registry Env
+        run: |
+          GITEA_HOST=$(echo "${{ github.server_url }}" | sed -e 's|^https://||' -e 's|^http://||')
+          echo "REGISTRY_URL=$GITEA_HOST/${{ github.repository_owner }}" >> $GITHUB_ENV
+
       - name: Install Helm
         uses: azure/setup-helm@v3
 
-      - name: Helm Registry Login
-        env:
-          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
-          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      - name: Gitea Helm Registry Login
         run: |
-          echo "$REGISTRY_PASSWORD" | helm registry login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login "$REGISTRY_URL" --username "${{ github.actor }}" --password-stdin
 
-      - name: Build and Push Helm Chart
-        env:
-          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+      - name: Build and Push Helm Chart to Gitea
         run: |
           helm package ./helm/manga-reader
-          helm push manga-reader-*.tgz oci://"$REGISTRY_URL"/manga-reader-charts
+          # 使用雙引號確保環境變數正確替換，oci:// 必須是字串格式
+          helm push manga-reader-*.tgz "oci://$REGISTRY_URL"
