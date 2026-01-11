@@ -20,7 +20,7 @@ spec:
         command: ['sh', '-c', 'until nc -z {{ include "manga-reader.fullname" . }}-postgres 5432; do echo waiting for postgres; sleep 2; done;']
       containers:
       - name: manga-reader
-        image: "{{ .Values.image.web.repository }}:{{ .Values.image.web.tag }}"
+        image: "{{ .Values.image.web.repository }}:{{ .Values.image.web.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.web.pullPolicy }}
         ports:
         - containerPort: 3000

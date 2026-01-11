@@ -20,7 +20,7 @@ spec:
         command: ['sh', '-c', 'until nc -z {{ include "manga-reader.fullname" . }}-postgres 5432; do echo waiting for postgres; sleep 2; done;']
       containers:
       - name: image-processor
-        image: "{{ .Values.image.processor.repository }}:{{ .Values.image.processor.tag }}"
+        image: "{{ .Values.image.processor.repository }}:{{ .Values.image.processor.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.processor.pullPolicy }}
         ports:
         - containerPort: 3001

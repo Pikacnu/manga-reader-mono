@@ -116,7 +116,8 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@v3
-
+      - name: Lint Helm Chart
+        run: helm lint ./helm/manga-reader
       - name: Helm Registry Login
         env:
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -129,5 +130,10 @@ jobs:
         env:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
         run: |
+          # Use short SHA as chart version to match images
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          sed -i "s/^version: .*/version: 0.1.0-$SHORT_SHA/" ./helm/manga-reader/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$SHORT_SHA\"/" ./helm/manga-reader/Chart.yaml
+          
           helm package ./helm/manga-reader
           helm push manga-reader-*.tgz oci://"$REGISTRY_URL"/manga-reader-charts
