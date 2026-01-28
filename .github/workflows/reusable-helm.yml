@@ -40,9 +40,9 @@ jobs:
         env:
           REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
         run: |
-          # Use short SHA as chart version to match images
+          # Use short SHA as appVersion and run_number as chart version (0.1.x)
           SHORT_SHA=$(echo ${{ inputs.commit_sha }} | cut -c1-7)
-          sed -i "s/^version: .*/version: 0.1.0-$SHORT_SHA/" ./helm/manga-reader/Chart.yaml
+          sed -i "s/^version: .*/version: 0.1.${{ github.run_number }}/" ./helm/manga-reader/Chart.yaml
           sed -i "s/^appVersion: .*/appVersion: \"$SHORT_SHA\"/" ./helm/manga-reader/Chart.yaml
           
           helm package ./helm/manga-reader
