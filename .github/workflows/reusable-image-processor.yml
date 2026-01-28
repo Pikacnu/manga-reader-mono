@@ -49,3 +49,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           sbom: false
+
+      - name: Cleanup on finish
+        if: always()
+        run: docker system prune -f

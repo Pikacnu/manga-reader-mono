@@ -1,0 +1,49 @@
+name: Build and Push Helm
+
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        required: true
+        type: string
+    secrets:
+      REGISTRY_URL:
+        required: true
+      REGISTRY_USERNAME:
+        required: true
+      REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.14.2
+
+      - name: Lint Helm Chart
+        run: helm lint ./helm/manga-reader
+
+      - name: Helm Registry Login
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+        run: |
+          echo "$REGISTRY_PASSWORD" | helm registry login "$REGISTRY_URL" --username "$REGISTRY_USERNAME" --password-stdin
+
+      - name: Build and Push Helm Chart
+        env:
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+        run: |
+          # Use short SHA as chart version to match images
+          SHORT_SHA=$(echo ${{ inputs.commit_sha }} | cut -c1-7)
+          sed -i "s/^version: .*/version: 0.1.0-$SHORT_SHA/" ./helm/manga-reader/Chart.yaml
+          sed -i "s/^appVersion: .*/appVersion: \"$SHORT_SHA\"/" ./helm/manga-reader/Chart.yaml
+          
+          helm package ./helm/manga-reader
+          helm push manga-reader-*.tgz oci://"$REGISTRY_URL"/manga-reader-charts
