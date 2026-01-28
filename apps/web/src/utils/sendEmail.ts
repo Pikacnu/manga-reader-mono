@@ -1,7 +1,8 @@
-import { file } from 'bun';
+//import { file } from 'bun';
 import nodemailer from 'nodemailer';
-import { MailHost, MailPassword, MailUser } from './config';
+import { BetterAuthURL, MailHost, MailPassword, MailUser } from './config';
 import { join } from 'path';
+import { readFile } from 'fs/promises';
 
 export enum EmailType {
   SIGNUP = 'SIGNUP',
@@ -21,12 +22,7 @@ const mailer = nodemailer.createTransport({
     user: MailUser,
     pass: MailPassword,
   },
-  tls: {
-    rejectUnauthorized: false,
-  },
 });
-
-const currentPath = import.meta.dir;
 
 export async function sendEmail(
   to: string,
@@ -34,30 +30,25 @@ export async function sendEmail(
   type: EmailType,
 ): Promise<void> {
   let personalizedContent = '';
-  switch (type) {
-    case EmailType.SIGNUP: {
-      const emailContent = await file(
-        join(currentPath, '../email/login-verification.html'),
-      ).text();
-      personalizedContent = emailContent
-        .replace('{{verification_link}}', url)
-        .replace('{{subject}}', subjectTypeMap[type]);
+  const emailDir = join(process.cwd(), 'src/email');
 
-      break;
-    }
-    case EmailType.RESET_PASSWORD: {
-      const emailContent = await file(
-        join(currentPath, '../email/reset-password.html'),
-      ).text();
-      personalizedContent = emailContent
-        .replace('{{reset_link}}', url)
-        .replace('{{subject}}', subjectTypeMap[type]);
-      break;
-    }
+  const templateMap: Record<EmailType, string> = {
+    [EmailType.SIGNUP]: 'login-verification.html',
+    [EmailType.RESET_PASSWORD]: 'reset-password.html',
+  };
 
-    default:
-      throw new Error('Unsupported email type');
+  const templateFile = templateMap[type];
+  if (!templateFile) {
+    throw new Error('Unsupported email type');
   }
+
+  const emailContent = await readFile(join(emailDir, templateFile), 'utf-8');
+
+  personalizedContent = emailContent
+    .replaceAll('{{action_url}}', url)
+    .replaceAll('{{site_url}}', BetterAuthURL)
+    .replaceAll('{{subject}}', subjectTypeMap[type]);
+
   if (!personalizedContent) {
     throw new Error('Email content is empty');
   }

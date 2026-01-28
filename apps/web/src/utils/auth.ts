@@ -14,7 +14,7 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     sendResetPassword: async ({ user, url, token }, request) => {
-      void sendEmail(user.email, url, EmailType.RESET_PASSWORD);
+      await sendEmail(user.email, url, EmailType.RESET_PASSWORD);
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onPasswordReset: async ({ user }, request) => {
@@ -25,7 +25,7 @@ export const auth = betterAuth({
   emailVerification: {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     sendVerificationEmail: async ({ user, url, token }, request) => {
-      void sendEmail(user.email, url, EmailType.SIGNUP);
+      await sendEmail(user.email, url, EmailType.SIGNUP);
     },
     sendOnSignIn: true,
     sendOnSignUp: true,

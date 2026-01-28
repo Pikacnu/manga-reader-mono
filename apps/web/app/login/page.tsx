@@ -1,5 +1,7 @@
 'use client';
 import { authClient } from '@/src/utils/authClient';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { useState } from 'react';
 
 enum EmailAuthSectionType {
@@ -12,6 +14,32 @@ export default function LoginPage() {
   const [EmailAuthType, setEmailAuthType] = useState<EmailAuthSectionType>(
     EmailAuthSectionType.SIGNIN,
   );
+
+  const [isNotifyUserCheckEmail, setIsNotifyUserCheckEmail] = useState(false);
+
+  if (isNotifyUserCheckEmail) {
+    return (
+      <div className='text-white w-full h-full flex items-center justify-center'>
+        <div className=' w-full grow flex flex-col items-center justify-center'>
+          <h1 className='text-4xl mb-4'>Check Your Email</h1>
+          <p className='text-lg'>
+            We have sent you an email with further instructions. Please check
+            your inbox.
+          </p>
+          <p className='text-lg'>
+            If you did not receive the email, please check your spam folder or
+            try again.
+          </p>
+          <Link
+            href='/'
+            className=' px-4 py-2 bg-blue-800 rounded-2xl m-16 text-2xl hover:bg-blue-700'
+          >
+            Back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='text-white w-full h-full flex items-center justify-center'>
@@ -81,7 +109,7 @@ export default function LoginPage() {
                 const rememberMe = formData.get('rememberMe') === 'on';
                 try {
                   if (EmailAuthType === EmailAuthSectionType.SIGNIN) {
-                    await authClient.signIn.email(
+                    const result = await authClient.signIn.email(
                       {
                         email,
                         password,
@@ -94,22 +122,36 @@ export default function LoginPage() {
                             alert('Please verify your email address');
                           }
                         },
+                        onSuccess: () => {
+                          redirect('/');
+                        },
                       },
                     );
+                    if (result.error) {
+                      alert('Login failed: ' + result.error.message);
+                    }
                   } else if (EmailAuthType === EmailAuthSectionType.SIGNUP) {
-                    await authClient.signUp.email({
+                    const result = await authClient.signUp.email({
                       email,
                       password,
                       name: name,
                       callbackURL: window.location.origin,
                     });
+                    if (result.error) {
+                      alert('Signup failed: ' + result.error.message);
+                    } else {
+                      setIsNotifyUserCheckEmail(true);
+                    }
                   } else if (
                     EmailAuthType === EmailAuthSectionType.FORGET_PASSWORD
                   ) {
-                    await authClient.requestPasswordReset({
+                    const result = await authClient.requestPasswordReset({
                       email,
                       redirectTo: window.location.origin + '/reset-password',
                     });
+                    if (result.error) {
+                      alert('Password reset failed: ' + result.error.message);
+                    }
                   } else {
                     throw new Error('Invalid email auth type');
                   }
@@ -164,8 +206,8 @@ export default function LoginPage() {
                 {EmailAuthType === EmailAuthSectionType.SIGNIN
                   ? 'Sign In'
                   : EmailAuthType === EmailAuthSectionType.SIGNUP
-                  ? 'Sign Up'
-                  : 'Send Reset Email'}
+                    ? 'Sign Up'
+                    : 'Send Reset Email'}
               </button>
             </form>
           </div>
