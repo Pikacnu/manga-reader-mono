@@ -53,6 +53,23 @@ s3:
   bucketName: "image-save"
   accessKeyId: ""
   secretAccessKey: ""
+  virtualHostedStyle: "false"
+
+config:
+  mailHost: "nfs-server-service"
+  imageProcessor:
+    port: "3001"
+    host: "0.0.0.0"
+    uploadsDir: "/uploads"
+    backupMountDir: "/backup"
+    sharedSsdCacheDir: "/cache"
+    sharedSsdCacheDuration: "3600"
+    cacheMaxAge: "2592000"
+    maxUploadSize: "1073741824"
+    backtrackDuration: "172800"
+    ramCacheExpiryDuration: "3600"
+    maxRamCacheSize: "100"
+    maxSharedSsdSizeGb: "10"
 
 resources:
   web:

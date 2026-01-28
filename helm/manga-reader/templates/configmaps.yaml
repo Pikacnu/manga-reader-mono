@@ -21,28 +21,28 @@ metadata:
   name: {{ include "manga-reader.fullname" . }}-web-config
 data:
   IMAGE_SERVER_URL_INNER: "http://{{ include "manga-reader.fullname" . }}-image-processor-service:3001"
-  MAIL_HOST: "nfs-server-service"
+  MAIL_HOST: {{ .Values.config.mailHost | quote }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "manga-reader.fullname" . }}-image-processor-config
 data:
-  PORT: "3001"
-  HOST: "0.0.0.0"
-  UPLOADS_DIR: "/uploads"
-  BACKUP_MOUNT_DIR: "/backup"
-  SHARED_SSD_CACHE_DIR: "/cache"
-  SHARED_SSD_CACHE_DURATION_IN_SECONDS: "3600"
-  CACHE_MAX_AGE: "2592000"
-  MAX_UPLOAD_SIZE: "1073741824"
-  BACKTRACK_DURATION_IN_SECONDS: "172800"
-  RAM_CACHE_EXPIRY_DURATION: "3600"
-  MAX_RAM_CACHE_SIZE: "20"
-  MAX_SHARED_SSD_SIZE_GB: "10"
+  PORT: {{ .Values.config.imageProcessor.port | quote }}
+  HOST: {{ .Values.config.imageProcessor.host | quote }}
+  UPLOADS_DIR: {{ .Values.config.imageProcessor.uploadsDir | quote }}
+  BACKUP_MOUNT_DIR: {{ .Values.config.imageProcessor.backupMountDir | quote }}
+  SHARED_SSD_CACHE_DIR: {{ .Values.config.imageProcessor.sharedSsdCacheDir | quote }}
+  SHARED_SSD_CACHE_DURATION_IN_SECONDS: {{ .Values.config.imageProcessor.sharedSsdCacheDuration | quote }}
+  CACHE_MAX_AGE: {{ .Values.config.imageProcessor.cacheMaxAge | quote }}
+  MAX_UPLOAD_SIZE: {{ .Values.config.imageProcessor.maxUploadSize | quote }}
+  BACKTRACK_DURATION_IN_SECONDS: {{ .Values.config.imageProcessor.backtrackDuration | quote }}
+  RAM_CACHE_EXPIRY_DURATION: {{ .Values.config.imageProcessor.ramCacheExpiryDuration | quote }}
+  MAX_RAM_CACHE_SIZE: {{ .Values.config.imageProcessor.maxRamCacheSize | quote }}
+  MAX_SHARED_SSD_SIZE_GB: {{ .Values.config.imageProcessor.maxSharedSsdSizeGb | quote }}
   S3_ENDPOINT: {{ .Values.s3.endpoint | quote }}
   S3_BUCKET_NAME: {{ .Values.s3.bucketName | quote }}
-  S3_VIRTUAL_HOSTED_STYLE: "false"
+  S3_VIRTUAL_HOSTED_STYLE: {{ .Values.s3.virtualHostedStyle | quote }}
   API_KEY: {{ .Values.secrets.imageServerApiKey | quote }}
 ---
 apiVersion: v1
