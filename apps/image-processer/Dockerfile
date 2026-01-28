@@ -1,28 +1,33 @@
 # Dockerfile
-FROM oven/bun:latest
+# syntax=docker/dockerfile:1
 
-# Set the working directory in the container
+# --- Stage 1: Build (Native AMD64) ---
+FROM --platform=$BUILDPLATFORM oven/bun:latest AS builder
 WORKDIR /app
 
-# Copy package.json and bun.lockb
 COPY package.json bun.lock ./
-
-# Install dependencies using Bun
 RUN bun install
 
-# Copy the rest of the application code
 COPY . .
-
-# Copy build and start scripts
-COPY build.sh start.sh ./
-
-# Make scripts executable
-RUN chmod +x build.sh start.sh
-
-# Run build script
+RUN chmod +x build.sh
 RUN ./build.sh
 
-# Expose the port specified in the environment variable or default to 3000
+# --- Stage 2: Runtime (Target ARM64) ---
+FROM oven/bun:latest
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/index.ts ./
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/db ./db
+COPY --from=builder /app/start.sh ./
+
+RUN chmod +x start.sh
+
+ENV PORT=3000
+EXPOSE $PORT
+
 ENV PORT=3000
 EXPOSE $PORT
 

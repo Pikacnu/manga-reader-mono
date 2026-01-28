@@ -1,20 +1,29 @@
-FROM oven/bun:latest
+# syntax=docker/dockerfile:1
 
+# --- Stage 1: Build (Native AMD64) ---
+FROM --platform=$BUILDPLATFORM oven/bun:latest AS builder
 WORKDIR /app
 
-# Install dependencies (retaining node_modules)
 COPY package.json bun.lockb* ./
-RUN bun install --frozen-lockfile || bun install
+RUN bun install --frozen-lockfile
 
-# Copy source code
 COPY . .
+ENV NODE_ENV=production
+RUN bun run build
+
+# --- Stage 2: Runtime (Target ARM64) ---
+FROM oven/bun:latest
+WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Build the Next.js application
-RUN bun run build
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/db ./db
+COPY --from=builder /app/drizzle.config.ts ./
 
 EXPOSE 3000
 
-# Run migration and start the server using bun run
 ENTRYPOINT ["sh", "-c", "bun run migrate && bun run start -- --hostname 0.0.0.0"]
