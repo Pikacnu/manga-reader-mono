@@ -58,11 +58,17 @@ spec:
               name: {{ include "manga-reader.fullname" . }}-secrets
               key: S3_SECRET_ACCESS_KEY
         volumeMounts:
+        - name: env-volume
+          mountPath: /app/.env
+          subPath: .env
         - name: uploads-volume
           mountPath: /uploads
         - name: cache-volume
           mountPath: /cache
       volumes:
+      - name: env-volume
+        secret:
+          secretName: {{ include "manga-reader.fullname" . }}-processor-env
       - name: uploads-volume
         persistentVolumeClaim:
           claimName: {{ include "manga-reader.fullname" . }}-uploads-pvc
