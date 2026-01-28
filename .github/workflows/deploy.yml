@@ -26,6 +26,7 @@ jobs:
 
   publish-helm:
     needs: [build-web, build-image-processor]
+    if: always() && !cancelled()
     uses: ./.github/workflows/reusable-helm.yml
     with:
       commit_sha: ${{ github.sha }}
