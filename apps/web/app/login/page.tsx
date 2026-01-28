@@ -166,6 +166,7 @@ export default function LoginPage() {
                 name='email'
                 placeholder='Email'
                 required
+                autoComplete='email'
                 className='w-full p-2 rounded bg-gray-800 border border-gray-600 text-white'
               />
               {EmailAuthType !== EmailAuthSectionType.FORGET_PASSWORD && (
@@ -174,6 +175,7 @@ export default function LoginPage() {
                   name='password'
                   placeholder='Password'
                   required
+                  autoComplete='current-password'
                   className='w-full p-2 rounded bg-gray-800 border border-gray-600 text-white'
                 />
               )}
@@ -183,6 +185,7 @@ export default function LoginPage() {
                   name='name'
                   placeholder='Name'
                   required
+                  autoComplete='username'
                   className='w-full p-2 rounded bg-gray-800 border border-gray-600 text-white'
                 />
               ) : (
